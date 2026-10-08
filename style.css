@@ -238,3 +238,10 @@ section.block h2 button { margin-left: auto; }
 button.gear:hover:not(:disabled) { border-style: solid; color: var(--ink); }
 button.gear:disabled { opacity: 0.4; cursor: not-allowed; }
 .gear.on { border: 1px solid var(--base); color: var(--base); }
+
+.legend .hint::before { display: none; }
+.legend .hint { margin-left: auto; }
+kbd { font-family: "Chakra Petch", monospace; font-size: 0.8em; border: 1px solid var(--panel-line); border-bottom-width: 2px; border-radius: 3px; padding: 0 5px; background: var(--page); }
+.rankbox { margin: 6px 0 10px; }
+.rankbox .bar { margin: 4px 0; }
+.ok-text { color: var(--ok); display: block; margin-top: 4px; }

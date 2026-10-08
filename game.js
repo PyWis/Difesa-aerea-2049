@@ -15,6 +15,12 @@ const CFG = {
   repRecovery: [{ below: 50, mult: 3 }, { below: 90, mult: 2 }],
   supportLockMin: 1440,     // dopo una modifica, ricognitori o rifornitori restano bloccati 24 ore
   medalChancePerPoint: 0.25, // probabilità di medaglia per ogni punto di reputazione oltre il 100% (max 1 al giorno)
+  trainingEveryDays: 7,     // in media una missione di addestramento a settimana
+  trainingWindowDays: 10,   // l'addestramento resta disponibile 10 giorni, poi scade
+  trainingMedals: 1,        // medaglie assegnate dall'addestramento
+  diffSpeed: 0.03,          // per ogni grado: +3% velocità delle minacce
+  diffWin: 0.02,            // per ogni grado: −2% probabilità di vittoria in combattimento
+  diffAttack: 0.01,         // per ogni grado: +1% probabilità oraria di attacco
   repLossCooldown: 50,      // reputazione persa quando una minaccia completa l'attacco a una base
   reconPerDay: 50,          // crediti / giorno di gioco
   tankerPerDay: 20,         // crediti / giorno di gioco
@@ -59,6 +65,14 @@ const CFG = {
   leadRecalcMin: 15,        // ricalcolo del punto d'incontro (minuti di gioco)
 };
 const R_EARTH = 6371;
+// Gradi: si sale con le medaglie; a 100 il gioco è vinto. Ogni grado rende le minacce un po' più pericolose.
+const MEDALS_GOAL = 100;
+const RANKS = [
+  { at: 0, name: 'Maresciallo' }, { at: 5, name: 'Sottotenente' }, { at: 10, name: 'Tenente' },
+  { at: 20, name: 'Capitano' }, { at: 40, name: 'Maggiore' }, { at: 65, name: 'Colonnello' },
+  { at: 95, name: 'Generale' }, { at: MEDALS_GOAL, name: 'Generale Planetario' },
+];
+const rankIdx = m => RANKS.reduce((i, r, k) => m >= r.at ? k : i, 0);
 // Ora 0 di gioco = 21 marzo 2049, 12:00
 const START_MS = Date.UTC(2049, 2, 21, 12, 0, 0);
 const DAY = 1440;
@@ -154,12 +168,15 @@ const isAir = p => AIR_STATES.includes(p.state);
 
 // ---------- Stato ----------
 let S, worldRows = [], BASES = [];
+const thSpeed = () => CFG.threatSpeed * (1 + CFG.diffSpeed * rankIdx(S.medals));
+const winCh = () => Math.max(0.5, CFG.winChance - CFG.diffWin * rankIdx(S.medals));
+const atkCh = () => CFG.attackChance + CFG.diffAttack * rankIdx(S.medals);
 function newGame() {
   S = {
     credits: CFG.startCredits, rep: CFG.startRep, t: 0, speed: 0, base: null,
     sites: pickSites(worldRows),
     support: { recon: 0, tanker: 0, signals: 0, lock: { recon: 0, tanker: 0 } }, planes: [], threats: [], log: [], loans: [], emergency: [],
-    ids: { R: 0, C: 0, B: 0, A: 0, T: 0, M: 0, L: 0, E: 0 },
+    ids: { R: 0, C: 0, B: 0, A: 0, T: 0, M: 0, L: 0, E: 0 }, training: null, trainDone: 0,
     selectedThreat: null, hoverSite: null, over: false, prevSpeed: 900, turboLeft: 0,
     kills: 0, medals: 0, slots: { fighter: TYPES.fighter.max, bomber: TYPES.bomber.max },
   };
@@ -200,6 +217,13 @@ function takeLoan(auto) {
 function changeRep(delta) {
   S.rep = Math.max(0, Math.min(100, S.rep + delta));
   if (S.rep <= 0 && !S.over) gameOver('Reputazione azzerata', 'Troppe basi sono state attaccate senza risposta: il comando ti ha sollevato dall\'incarico.');
+}
+function addMedal(n) {
+  const before = rankIdx(S.medals);
+  S.medals += n;
+  const after = rankIdx(S.medals);
+  if (after > before) addLog(`Promozione! Nuovo grado: ${RANKS[after].name} (${S.medals} medaglie). Le minacce diventano più pericolose.`, 'good');
+  if (S.medals >= MEDALS_GOAL && !S.over) victory();
 }
 const planesOf = type => S.planes.filter(p => p.type === type);
 function maxOf(type) {
@@ -294,6 +318,14 @@ const A = {
     f.state = 'escort'; f.escort = l.id; f.engaged = null; f.target = null; f.aim = null;
     addLog(`${f.id} scorta ${l.id}: attaccherà le minacce entro ${CFG.escortRangeKm} km.`);
   },
+  train(planeId) {
+    const p = findPlane(planeId);
+    if (!S.training || !p || p.type !== 'tactical' || p.state !== 'base') return;
+    launch(p);
+    p.state = 'flight'; p.mission = 'train';
+    addLog(`${p.id} decolla per l'addestramento a ${S.training.base.name}: arrivo tra ${fmtDur(dist(p, S.training.base) / p.speed * 60)}.`);
+  },
+  closeModal() { closeModal(); },
   retarget(planeId, threatId) {
     const p = findPlane(planeId), th = findThreat(threatId);
     if (!p || p.state !== 'rtb' || !th || isStrike(p) || p.damaged) return;
@@ -329,6 +361,7 @@ const A = {
 };
 const readyOf = type => planesOf(type).filter(p => p.state === 'base').sort((a, b) => b.speed - a.speed);
 function launch(p) {
+  p.trail = []; p.mission = null;
   p.flightMin = 0; p.upgradeMin = 0; p.aim = null; p.engaged = null; p.escort = null; p.target = null;
   p.autH = autonomyH(); // autonomia del volo: può solo crescere se si aggiungono rifornitori
   if (p.gear === 'sonic') {
@@ -337,7 +370,7 @@ function launch(p) {
   }
   p.lat = S.base.lat; p.lon = S.base.lon;
 }
-function goHome(p) { p.state = 'rtb'; p.target = null; p.escort = null; p.engaged = null; p.aim = null; }
+function goHome(p) { p.state = 'rtb'; p.mission = null; p.target = null; p.escort = null; p.engaged = null; p.aim = null; }
 function removePlane(p, msg) {
   S.planes = S.planes.filter(x => x !== p);
   if (msg) addLog(msg, 'bad');
@@ -354,7 +387,7 @@ function shotDown(p, msg) {
   }
   if (p.type === 'fighter') removePlane(p, `${msg} Penale ${pen} crediti.`);
   else {
-    p.state = 'repair'; p.repairUntil = S.t + CFG.repairMin;
+    p.mission = null; p.state = 'repair'; p.repairUntil = S.t + CFG.repairMin;
     p.lat = S.base.lat; p.lon = S.base.lon; p.target = null; p.escort = null; p.engaged = null; p.aim = null; p.flightMin = 0;
     addLog(`${msg} Penale ${pen} crediti, tornerà disponibile tra ${fmtDur(CFG.repairMin)}.`, 'bad');
     detach(p);
@@ -415,7 +448,7 @@ function step(dt) {
     addLog(`Mezzanotte: reputazione ${Math.round(before)}% → ${Math.round(S.rep)}% (+${gain} ricognizione${mult > 1 && baseGain ? `, recupero ×${mult}` : ''}${loss ? `, −${loss} rifornitori` : ''})${billed ? ', addebitati i costi giornalieri' : ''}.`);
     if (extra > 0) {
       const chance = Math.min(1, extra * CFG.medalChancePerPoint);
-      if (Math.random() < chance) { S.medals++; addLog(`${extra} ${extra === 1 ? 'punto' : 'punti'} di reputazione extra: medaglia ottenuta (probabilità ${Math.round(chance * 100)}%, totale ${S.medals}).`, 'good'); }
+      if (Math.random() < chance) { addLog(`${extra} ${extra === 1 ? 'punto' : 'punti'} di reputazione extra: medaglia ottenuta (probabilità ${Math.round(chance * 100)}%, totale ${S.medals + 1}).`, 'good'); addMedal(1); }
       else addLog(`${extra} ${extra === 1 ? 'punto' : 'punti'} di reputazione extra: nessuna medaglia oggi (probabilità ${Math.round(chance * 100)}%).`);
     }
   }
@@ -426,9 +459,20 @@ function step(dt) {
     if (Math.random() < pSignal) { S.support.signals++; spawnThreat('La ricognizione'); }
   }
 
+  // missione di addestramento: compare a caso (in media una a settimana), scade dopo 10 giorni
+  if (S.training && S.t >= S.training.until) {
+    addLog(`L'addestramento a ${S.training.base.name} è scaduto senza essere svolto.`, 'bad');
+    S.training = null; panelDirty = true;
+  } else if (!S.training && Math.random() < 1 - Math.exp(-dt / (CFG.trainingEveryDays * DAY))) {
+    const cand = BASES.filter(b => dist(b, S.base) > 500);
+    const b = cand[Math.floor(Math.random() * cand.length)];
+    S.training = { base: b, until: S.t + CFG.trainingWindowDays * DAY };
+    addLog(`Missione di addestramento a ${b.name} (${b.state}): invia un aereo tattico entro ${CFG.trainingWindowDays} giorni, premio ${CFG.trainingMedals} medaglia.`, 'good');
+  }
+
   // minacce
   const hourCrossed = Math.floor(t1 / 60) > Math.floor(t0 / 60);
-  const km = CFG.threatSpeed * dt / 60;
+  const km = thSpeed() * dt / 60;
   for (const th of [...S.threats]) {
     if (!S.threats.includes(th)) continue;
     if (th.state === 'cooldown') {
@@ -446,7 +490,7 @@ function step(dt) {
       if (prey && Math.random() < CFG.huntChance) {
         th.state = 'hunting'; th.prey = prey.id; th.attack = null; th.course = (th.course || 0) + 1;
         addLog(`${th.id} ha avvistato ${prey.id} a ${Math.round(dist(prey, th))} km e gli va incontro!`, 'bad');
-      } else if (th.state === 'flight' && S.t - th.flightStart >= CFG.attackAfterH * 60 && Math.random() < CFG.attackChance) {
+      } else if (th.state === 'flight' && S.t - th.flightStart >= CFG.attackAfterH * 60 && Math.random() < atkCh()) {
         // qualsiasi base del mondo, purché non sia già occupata o presa di mira da un'altra minaccia
         const taken = new Set(S.threats.filter(o => o.attack).map(o => o.attack.key));
         const free = BASES.map((b, i) => i).filter(i => !taken.has(i));
@@ -482,6 +526,7 @@ function step(dt) {
         continue;
       }
     }
+    trail(th);
     const mv = travel(th, th.bearing, km);
     th.lat = mv.pos.lat; th.lon = mv.pos.lon; th.bearing = mv.bearing;
   }
@@ -509,6 +554,7 @@ function step(dt) {
     }
     if (p.state === 'base') continue;
     p.flightMin += dt;
+    trail(p);
     const pkm = spd(p) * dt / 60;
     const home = dist(p, S.base);
     if (!isStrike(p)) p.autH = Math.max(p.autH || 0, autNow); // ridurre i rifornitori non toglie autonomia a chi è in volo
@@ -518,6 +564,19 @@ function step(dt) {
       goHome(p); addLog(`${p.id}: carburante al limite, rientro automatico.`, 'bad');
     }
 
+    if (p.state === 'flight' && p.mission === 'train') {
+      const tr = S.training;
+      if (!tr) { goHome(p); addLog(`${p.id}: addestramento non più disponibile, rientro.`); }
+      else if (dist(p, tr.base) <= pkm + CFG.interceptRadiusKm) {
+        p.lat = tr.base.lat; p.lon = tr.base.lon;
+        addLog(`${p.id} ha completato l'addestramento a ${tr.base.name}: +${CFG.trainingMedals} medaglia.`, 'good');
+        S.training = null; S.trainDone++;
+        goHome(p);
+        addMedal(CFG.trainingMedals);
+        if (S.over) return;
+        continue;
+      } else { moveTo(p, tr.base, pkm); continue; }
+    }
     if (p.state === 'flight' && p.type === 'fighter') {
       const th = findThreat(p.target);
       if (!th || th.state === 'cooldown') { goHome(p); addLog(`${p.id}: obiettivo non più colpibile, rientro.`); }
@@ -588,6 +647,11 @@ function applyBonus(p) {
   p.bonus = 0;
   if (p.speed > before) addLog(`${p.id} potenziato all'istante: ${before} → ${p.speed} km/h.`, 'good');
 }
+// scia di posizioni (per il disegno): un punto ogni 200 km, massimo 24
+function trail(o) {
+  const t = o.trail || (o.trail = []), l = t[t.length - 1];
+  if (!l || dist(l, o) > 200) { t.push({ lat: o.lat, lon: o.lon }); if (t.length > 24) t.shift(); }
+}
 function moveTo(p, target, km) {
   const mv = travel(p, bearingTo(p, target), km);
   p.lat = mv.pos.lat; p.lon = mv.pos.lon; p.heading = mv.bearing;
@@ -607,7 +671,7 @@ function chase(f, th, km, remaining) {
   }
   if (d <= km + CFG.interceptRadiusKm) {
     f.lat = th.lat; f.lon = th.lon;
-    if (Math.random() < CFG.winChance) {
+    if (Math.random() < winCh()) {
       killThreat(th, `${f.id} ha abbattuto ${th.id}!`);
       earnWin(f);
       if (f.state === 'escort') { f.engaged = null; f.aim = null; addLog(`${f.id} torna a scortare ${f.escort}.`); }
@@ -630,7 +694,7 @@ function chase(f, th, km, remaining) {
 function ambush(th, prey) {
   const escorts = S.planes.filter(e => e.state === 'escort' && e.escort === prey.id && dist(e, prey) < 150);
   for (const e of escorts) {
-    if (Math.random() < CFG.winChance) { killThreat(th, `${e.id} difende ${prey.id} e abbatte ${th.id}!`); earnWin(e); return; }
+    if (Math.random() < winCh()) { killThreat(th, `${e.id} difende ${prey.id} e abbatte ${th.id}!`); earnWin(e); return; }
     shotDown(e, `${e.id} è stato abbattuto da ${th.id} mentre difendeva ${prey.id}.`);
   }
   if (Math.random() < CFG.strikeDefense) { killThreat(th, `${prey.id} si è difeso da solo e ha abbattuto ${th.id}!`); return; }
@@ -639,7 +703,7 @@ function ambush(th, prey) {
 }
 // primo punto lungo la rotta attuale della minaccia che il caccia può raggiungere prima di lei
 function solveIntercept(f, th, maxMin) {
-  const v = CFG.threatSpeed / 60, u = spd(f) / 60;
+  const v = thSpeed() / 60, u = spd(f) / 60;
   const stop = th.state === 'inbound' ? dist(th, th.attack) : Infinity;
   const at = t => travel(th, th.bearing, Math.min(v * t, stop)).pos;
   const g = t => dist(f, at(t)) - u * t;
@@ -657,7 +721,7 @@ function solveIntercept(f, th, maxMin) {
 }
 function spawnThreat(by) {
   const p = randomPoint();
-  const th = { id: 'M' + (++S.ids.M), lat: p.lat, lon: p.lon, bearing: Math.random() * 360, born: S.t, flightStart: S.t, state: 'flight', attack: null, prey: null };
+  const th = { trail: [], id: 'M' + (++S.ids.M), lat: p.lat, lon: p.lon, bearing: Math.random() * 360, born: S.t, flightStart: S.t, state: 'flight', attack: null, prey: null };
   S.threats.push(th);
   addLog(`${by} segnala la minaccia ${th.id} a ${fmtCoord(th)}, ${Math.round(dist(th, S.base))} km dalla base.`, 'bad');
   if (S.speed !== 1) { S.speed = 1; S.turboLeft = 0; addLog('Nuova minaccia: velocità portata a tempo reale.'); }
@@ -670,6 +734,13 @@ function removeThreat(id) {
 }
 const fmtCoord = p => `${Math.abs(p.lat).toFixed(1)}°${p.lat >= 0 ? 'N' : 'S'} ${Math.abs(p.lon).toFixed(1)}°${p.lon >= 0 ? 'E' : 'O'}`;
 
+function victory() {
+  S.over = true; S.speed = 0;
+  openModal(`<h2>Generale Planetario!</h2>
+    <p>Hai raggiunto ${MEDALS_GOAL} medaglie: il cielo del pianeta è al sicuro e il comando ti conferisce il grado supremo.</p>
+    <p>Data: ${fmtClock(S.t)}. Giorni di servizio: ${(S.t / DAY).toFixed(1)}. Minacce eliminate: ${S.kills}. Addestramenti completati: ${S.trainDone}. Crediti: ${Math.floor(S.credits)}.</p>
+    <button class="btn" data-action="restart">Nuova partita</button>`);
+}
 function gameOver(title, text) {
   S.over = true; S.speed = 0;
   openModal(`<h2>${title}</h2>
@@ -711,6 +782,42 @@ const LAND_RINGS = LAND.map(ring => {
 const px = p => [(p.lon + 180) / 360 * W, (90 - p.lat) / 180 * H];
 
 
+// punti lungo il cerchio massimo (interpolazione sferica) tra due posizioni
+function geoPts(a, b) {
+  const d = dist(a, b) / R_EARTH, sd = Math.sin(d);
+  if (d < 1e-5 || sd < 1e-6) return [a, b];
+  const n = Math.max(2, Math.ceil(deg(d) / 2));
+  const la1 = rad(a.lat), lo1 = rad(a.lon), la2 = rad(b.lat), lo2 = rad(b.lon), pts = [];
+  for (let i = 0; i <= n; i++) {
+    const f = i / n, k1 = Math.sin((1 - f) * d) / sd, k2 = Math.sin(f * d) / sd;
+    const x = k1 * Math.cos(la1) * Math.cos(lo1) + k2 * Math.cos(la2) * Math.cos(lo2);
+    const y = k1 * Math.cos(la1) * Math.sin(lo1) + k2 * Math.cos(la2) * Math.sin(lo2);
+    const z = k1 * Math.sin(la1) + k2 * Math.sin(la2);
+    pts.push({ lat: deg(Math.atan2(z, Math.hypot(x, y))), lon: deg(Math.atan2(y, x)) });
+  }
+  return pts;
+}
+// traccia una polilinea sulla mappa; al bordo dell'antimeridiano la linea esce da un lato e rientra dall'altro
+function strokePts(pts, color, dash, alpha = 0.6, w = 1) {
+  if (pts.length < 2) return;
+  ctx.beginPath();
+  let [x, y] = px(pts[0]); ctx.moveTo(x, y);
+  for (let i = 1; i < pts.length; i++) {
+    const p = pts[i - 1], q = pts[i];
+    if (Math.abs(q.lon - p.lon) > 180) {
+      const east = p.lon > 0, lq = q.lon + (east ? 360 : -360), t = ((east ? 180 : -180) - p.lon) / (lq - p.lon);
+      const yy = (90 - (p.lat + t * (q.lat - p.lat))) / 180 * H;
+      ctx.lineTo(east ? W : 0, yy); ctx.moveTo(east ? 0 : W, yy);
+    }
+    [x, y] = px(q); ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = color; ctx.globalAlpha = alpha; ctx.setLineDash(dash); ctx.lineWidth = w; ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+}
+const geoLine = (a, b, color, dash, alpha, w) => strokePts(geoPts(a, b), color, dash, alpha, w);
+// proiezione della rotta di una minaccia lungo il cerchio massimo
+const courseFrom = (o, brg, km, n = 16) => Array.from({ length: n + 1 }, (_, i) => i ? travel(o, brg, km * i / n).pos : { lat: o.lat, lon: o.lon });
+
 function draw(now) {
   ctx.fillStyle = colors.ocean; ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.beginPath();
@@ -748,15 +855,35 @@ function draw(now) {
   ctx.fillStyle = colors.base; ctx.fillRect(-6, -6, 12, 12); ctx.restore();
   ctx.fillStyle = colors.ink; ctx.font = '600 12px Barlow, system-ui, sans-serif'; ctx.fillText(S.base.name, bx + 11, by + 4);
 
-  const line = (a, b, color, dash, alpha = 0.6, w = 1) => {
-    if (Math.abs(a.lon - b.lon) > 180) return;
-    const [x1, y1] = px(a), [x2, y2] = px(b);
-    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-    ctx.strokeStyle = color; ctx.globalAlpha = alpha; ctx.setLineDash(dash); ctx.lineWidth = w; ctx.stroke();
-    ctx.setLineDash([]); ctx.globalAlpha = 1;
-  };
+  const line = (a, b, color, dash, alpha = 0.6, w = 1) => geoLine(a, b, color, dash, alpha, w);
 
-  // rotte degli aerei
+  // altre basi del mondo (bersagli possibili), discrete
+  ctx.fillStyle = colors['ink-soft']; ctx.globalAlpha = 0.4;
+  for (const b of BASES) { const [x, y] = px(b); ctx.beginPath(); ctx.arc(x, y, 1.8, 0, Math.PI * 2); ctx.fill(); }
+  ctx.globalAlpha = 1;
+
+  // scie dietro agli aerei e alle minacce
+  for (const o of [...S.threats, ...S.planes]) {
+    if (!o.trail || o.trail.length < 1 || (o.type && !isAir(o)) || o.state === 'cooldown') continue;
+    const col = o.type ? colors[TYPES[o.type].color] : colors.threat;
+    strokePts([...o.trail, o], col, [], 0.28, 1.5);
+  }
+
+  // rotta prevista della minaccia selezionata (cerchio massimo lungo la rotta attuale)
+  const selTh = S.selectedThreat && findThreat(S.selectedThreat);
+  if (selTh && selTh.state !== 'cooldown') strokePts(courseFrom(selTh, selTh.bearing, 4000), colors.threat, [2, 5], 0.55, 1.2);
+
+  // missione di addestramento
+  if (S.training) {
+    const [tx, ty] = px(S.training.base), r = 7 + pulse * 3;
+    ctx.save(); ctx.translate(tx, ty); ctx.strokeStyle = colors.tactical; ctx.lineWidth = 2; ctx.beginPath();
+    ctx.moveTo(0, -r); ctx.lineTo(r, 0); ctx.lineTo(0, r); ctx.lineTo(-r, 0); ctx.closePath(); ctx.stroke(); ctx.restore();
+    ctx.fillStyle = colors.tactical; ctx.font = '600 11px "Chakra Petch", system-ui, sans-serif';
+    ctx.fillText(`Addestramento ${S.training.base.name}`, tx + 12, ty - 6);
+    ctx.fillStyle = colors['ink-soft']; ctx.fillText(`scade tra ${fmtDur(S.training.until - S.t)}`, tx + 12, ty + 8);
+  }
+
+  // rotte degli aerei: sempre archi di cerchio massimo, come le traiettorie reali
   for (const p of S.planes) {
     if (!isAir(p)) continue;
     const c = colors[TYPES[p.type].color];
@@ -768,11 +895,13 @@ function draw(now) {
       else if (l && dist(p, l) > 30) line(p, l, c, [], 0.5);
       continue;
     }
+    if (p.mission === 'train' && S.training) { line(p, S.training.base, c, [8, 4], 0.7); continue; }
     const th = findThreat(p.target);
     if (!th) continue;
     let tgt = th;
     if (p.type === 'fighter' && p.mode === 'lead' && p.aim && p.aim.pos) {
       tgt = p.aim.pos;
+      line(th, tgt, colors.threat, [1, 4], 0.4); // dove la minaccia sarà all'incontro
       const [ax, ay] = px(tgt);
       ctx.strokeStyle = c; ctx.lineWidth = 1.5; ctx.beginPath();
       ctx.moveTo(ax - 5, ay - 5); ctx.lineTo(ax + 5, ay + 5); ctx.moveTo(ax + 5, ay - 5); ctx.lineTo(ax - 5, ay + 5); ctx.stroke();
@@ -853,6 +982,7 @@ canvas.addEventListener('mousemove', e => {
     const p = S.planes.find(f => isAir(f) && near(f));
     if (th) html = `<b>${th.id}</b> ${THREAT_STATE(th)}<br>${fmtCoord(th)}, ${Math.round(dist(th, S.base))} km dalla base<br>Clic per selezionare`;
     else if (p) html = `<b>${p.id}</b> ${TYPES[p.type].label}, ${p.speed} km/h<br>${planeStateText(p)}`;
+    else if (S.training && near(S.training.base)) html = `<b>Addestramento: ${S.training.base.name}</b><br>Invia un aereo tattico, premio ${CFG.trainingMedals} medaglia<br>Scade tra ${fmtDur(S.training.until - S.t)}`;
     else if (near(S.base)) html = `<b>Base: ${S.base.name}</b><br>${S.base.state}, ${S.base.cont}`;
   }
   if (html) {
@@ -888,7 +1018,7 @@ function renderTop() {
   cr.classList.toggle('low', S.credits < 150);
   const rep = document.getElementById('rep');
   const r = Math.round(S.rep);
-  rep.innerHTML = `<span>Reputazione ${r}%<em class="medals" title="Punti medaglia">${S.medals} ${S.medals === 1 ? 'medaglia' : 'medaglie'}</em></span><div class="repbar"><i style="width:${r}%"></i></div>`;
+  rep.innerHTML = `<span>Reputazione ${r}%<em class="medals" title="Grado e medaglie (obiettivo ${MEDALS_GOAL})">${RANKS[rankIdx(S.medals)].name} · ${S.medals}/${MEDALS_GOAL} ${S.medals === 1 ? 'medaglia' : 'medaglie'}</em></span><div class="repbar"><i style="width:${r}%"></i></div>`;
   rep.classList.toggle('low', r <= 50);
   document.querySelectorAll('#speeds button').forEach(b => {
     b.setAttribute('aria-pressed', String(+b.dataset.speed === S.speed));
@@ -906,6 +1036,7 @@ function planeStateText(p) {
   if (p.state === 'upgrading') return `Potenziamento ${Math.floor(p.upgradeMin / DAY * 100)}%`;
   if (p.state === 'rtb') return p.damaged ? 'Danneggiato, rientro a metà velocità' : 'In rientro';
   if (p.state === 'escort') return p.engaged ? `Scorta ${p.escort}, ingaggia ${p.engaged}` : `Scorta ${p.escort}`;
+  if (p.mission === 'train' && S.training) return `Verso ${S.training.base.name} (addestramento), ${Math.round(dist(p, S.training.base))} km`;
   const th = findThreat(p.target);
   if (isStrike(p)) return th ? `Verso ${th.attack ? th.attack.name.replace(' (la tua base)', '') : th.id}, ${Math.round(dist(p, th))} km` : 'In volo';
   return `Verso ${p.target}, ${Math.round(dist(p, th || p))} km`;
@@ -944,6 +1075,8 @@ function planeCard(p, aut) {
       if (sel && sel.state !== 'cooldown') actions += `<button class="btn danger" data-action="intercept" data-a="${sel.id}" data-b="${p.id}">Decolla verso ${sel.id}</button>`;
       for (const l of S.planes.filter(l => isStrike(l) && isAir(l)))
         actions += `<button class="btn" data-action="escort" data-a="${p.id}" data-b="${l.id}">Scorta ${l.id}</button>`;
+    } else if (p.type === 'tactical' && S.training && !(sel && sel.state === 'cooldown')) {
+      actions += `<button class="btn" data-action="train" data-a="${p.id}">Addestramento a ${S.training.base.name} (${fmtDur(dist(S.base, S.training.base) / p.speed * 60)})</button>`;
     } else if (sel && sel.state === 'cooldown') {
       const eta = dist(S.base, sel) / p.speed * 60;
       actions += `<button class="btn danger" data-action="strike" data-a="${sel.id}" data-b="${p.id}">Colpisci ${sel.id} (${fmtDur(eta)})</button>`;
@@ -989,6 +1122,17 @@ function planeCard(p, aut) {
     <span class="note">${winsText(p)}</span>
     ${extra}
     <div class="plane-foot">${mode}<div class="actions">${actions}</div></div>
+  </div>`;
+}
+function rankBlock() {
+  const i = rankIdx(S.medals), nx = RANKS[i + 1], cur = RANKS[i];
+  const pct = nx ? (S.medals - cur.at) / (nx.at - cur.at) * 100 : 100;
+  const tr = S.training;
+  return `<div class="rankbox"><b>${cur.name}</b>${nx ? ` · prossimo grado: ${nx.name} a ${nx.at} medaglie` : ''}
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <span class="note">Obiettivo: ${MEDALS_GOAL} medaglie, Generale Planetario. Ogni grado aumenta la difficoltà: minacce +${Math.round(i * CFG.diffSpeed * 100)}% più veloci, vittoria in combattimento ${Math.round(winCh() * 100)}%, attacchi ${Math.round(atkCh() * 100)}% l'ora.</span>
+    ${tr ? `<span class="note ok-text"><b>Addestramento a ${tr.base.name}</b> (${tr.base.state}): invia un aereo tattico entro ${fmtDur(tr.until - S.t)} per ${CFG.trainingMedals} medaglia.</span>`
+         : `<span class="note">Una missione di addestramento compare in media ogni ${CFG.trainingEveryDays} giorni e resta valida ${CFG.trainingWindowDays} giorni: richiede l'aereo tattico.</span>`}
   </div>`;
 }
 function loanBlock() {
@@ -1059,13 +1203,14 @@ function renderPanelBody() {
   panel.innerHTML = `
   <section class="block">
     <h2>Base: ${S.base.name}</h2>
+    ${rankBlock()}
     <p class="note">${S.base.zone}, ${S.base.state}, ${S.base.cont}. Minacce eliminate: ${S.kills}. Punti medaglia: ${S.medals} (al massimo 1 al giorno: ${CFG.medalChancePerPoint * 100}% di probabilità per ogni punto di reputazione che andrebbe oltre il 100%). La reputazione si recupera con i ricognitori e cala di ${CFG.repLossCooldown}% per ogni attacco portato a termine.</p>
   </section>
   ${loanBlock()}
   <section class="block">
     <h2>Minacce <span class="count">${S.threats.length}</span></h2>
     ${threatRows}
-    ${S.threats.length ? `<p class="note">In volo si colpiscono con i caccia (80% al contatto, +${CFG.killReward}). Mentre attaccano una base solo bombardiere (+${CFG.killReward}, −${CFG.rebuildCost} di ricostruzione) e aereo tattico (+${CFG.tacticalReward}) possono eliminarle.</p>` : ''}
+    ${S.threats.length ? `<p class="note">In volo si colpiscono con i caccia (${Math.round(winCh() * 100)}% al contatto, +${CFG.killReward}). Mentre attaccano una base solo bombardiere (+${CFG.killReward}, −${CFG.rebuildCost} di ricostruzione) e aereo tattico (+${CFG.tacticalReward}) possono eliminarle.</p>` : ''}
   </section>
   <section class="block">
     <h2>Caccia <span class="count">${fighters.length}/${maxOf('fighter')}</span>
@@ -1107,6 +1252,41 @@ document.getElementById('speeds').addEventListener('click', e => {
 panel.addEventListener('mouseover', e => {
   const li = e.target.closest('[data-hover]');
   if (S && !S.base) S.hoverSite = li ? +li.dataset.hover : null;
+});
+
+// ---------- Scorciatoie da tastiera ----------
+const SPEED_KEYS = { 1: 0, 2: 1, 3: 60, 4: 120, 5: 300, 6: 900, 7: CFG.turboSpeed };
+function helpModal() {
+  openModal(`<h2>Scorciatoie e gradi</h2>
+    <p><kbd>Spazio</kbd> pausa / riprendi · <kbd>1</kbd>-<kbd>7</kbd> velocità (pausa, tempo reale, 1, 2, 5, 15 min/s, 1 ora/s)<br>
+    <kbd>T</kbd> minaccia successiva · <kbd>Esc</kbd> deseleziona · <kbd>I</kbd> intercetta la minaccia selezionata col caccia più veloce<br>
+    <kbd>B</kbd> bombardiere / <kbd>A</kbd> aereo tattico contro la minaccia selezionata a terra · <kbd>?</kbd> questo aiuto</p>
+    <p>${RANKS.map(r => `<b>${r.name}</b> ${r.at}`).join(' · ')}</p>
+    <button class="btn" data-action="closeModal">Chiudi</button>`);
+}
+document.addEventListener('keydown', e => {
+  if (!S || e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  const k = e.key;
+  if (modal.classList.contains('open')) { if (k === 'Escape' && !S.over) closeModal(); return; }
+  if (k === '?' || k === 'h' || k === 'H') { helpModal(); return; }
+  if (!S.base || S.over) return;
+  let handled = true;
+  if (k === ' ') {
+    if (e.target.closest && e.target.closest('button')) return; // lo spazio attiva il pulsante col focus
+    if (S.speed > 0) { S.prevSpeed = S.speed; A.speed(0); } else A.speed(S.prevSpeed > 0 && S.prevSpeed !== CFG.turboSpeed ? S.prevSpeed : 60);
+  } else if (SPEED_KEYS[k] !== undefined) A.speed(SPEED_KEYS[k]);
+  else if (k === 'Escape') { S.selectedThreat = null; }
+  else if (k === 't' || k === 'T') {
+    const ids = S.threats.map(t => t.id);
+    if (ids.length) S.selectedThreat = ids[(ids.indexOf(S.selectedThreat) + 1) % ids.length];
+  } else if (k === 'i' || k === 'I') {
+    const th = S.selectedThreat && findThreat(S.selectedThreat);
+    if (th && th.state !== 'cooldown') A.intercept(th.id);
+  } else if (k === 'b' || k === 'B' || k === 'a' || k === 'A') {
+    const th = S.selectedThreat && findThreat(S.selectedThreat);
+    if (th && th.state === 'cooldown') A.strike(th.id, k.toLowerCase() === 'b' ? 'bomber' : 'tactical');
+  } else handled = false;
+  if (handled) { e.preventDefault(); panelDirty = true; renderPanel(); }
 });
 
 // ---------- Modale ----------

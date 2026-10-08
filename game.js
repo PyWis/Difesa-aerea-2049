@@ -21,8 +21,6 @@ const CFG = {
   diffSpeed: 0.03,          // per ogni grado: +3% velocità delle minacce
   diffWin: 0.02,            // per ogni grado: −2% probabilità di vittoria in combattimento
   diffAttack: 0.01,         // per ogni grado: +1% probabilità oraria di attacco
-  rescueCreditsPerRep: 100, // salvataggio dalla bancarotta: crediti ottenuti per ogni 1% di reputazione sacrificato
-  rescueBuffer: 5,          // opzione con margine: punti di reputazione in più rispetto al minimo
   repLossCooldown: 50,      // reputazione persa quando una minaccia completa l'attacco a una base
   reconPerDay: 50,          // crediti / giorno di gioco
   tankerPerDay: 20,         // crediti / giorno di gioco
@@ -44,8 +42,8 @@ const CFG = {
   strikeDefense: 0.2,       // probabilità che un bombardiere/tattico senza scorta abbatta chi lo attacca
   escortRangeKm: 1000,      // la scorta ingaggia minacce entro questa distanza dall'aereo scortato
   slotCost: { fighter: 5000, bomber: 10000 },  // posto aggiuntivo acquistabile
-  slotMax: { fighter: 10, bomber: 3 },
-  tacticalBonusAtBombers: 3, // con 3 bombardieri (il massimo) si sblocca il secondo aereo tattico
+  slotMax: { fighter: 15, bomber: 5 },
+  tacticalBonusAtBombers: 5, // con 5 bombardieri si sblocca il secondo aereo tattico
   killsForUpgrade: 3,       // abbattimenti di un caccia per un potenziamento istantaneo
   winsForUpgrade: 5,        // missioni vinte da bombardiere/tattico per un potenziamento istantaneo
   gear: {                   // dotazioni dei caccia: una sola per volta, si consumano all'uso
@@ -160,8 +158,8 @@ function pickSites(rows) {
 
 // ---------- Tipi di aereo da combattimento ----------
 const TYPES = {
-  fighter:  { label: 'Caccia',        prefix: 'C', max: 5, base: 1000, top: 2000, perHour: 5,  color: 'fighter' },
-  bomber:   { label: 'Bombardiere',   prefix: 'B', max: 1, base: 300,  top: 700,  perHour: 10, color: 'bomber' },
+  fighter:  { label: 'Caccia',        prefix: 'C', max: 8, base: 1000, top: 2000, perHour: 5,  color: 'fighter' },
+  bomber:   { label: 'Bombardiere',   prefix: 'B', max: 3, base: 300,  top: 700,  perHour: 10, color: 'bomber' },
   tactical: { label: 'Aereo tattico', prefix: 'A', max: 1, base: 300,  top: 700,  perHour: 15, color: 'tactical' },
 };
 const isStrike = p => p.type === 'bomber' || p.type === 'tactical';
@@ -178,7 +176,7 @@ function newGame() {
     credits: CFG.startCredits, rep: CFG.startRep, t: 0, speed: 0, base: null,
     sites: pickSites(worldRows),
     support: { recon: 0, tanker: 0, signals: 0, lock: { recon: 0, tanker: 0 } }, planes: [], threats: [], log: [], loans: [], emergency: [],
-    ids: { R: 0, C: 0, B: 0, A: 0, T: 0, M: 0, L: 0, E: 0 }, training: null, trainDone: 0, bankrupt: null,
+    ids: { R: 0, C: 0, B: 0, A: 0, T: 0, M: 0, L: 0, E: 0 }, training: null, trainDone: 0,
     selectedThreat: null, hoverSite: null, over: false, prevSpeed: 900, turboLeft: 0,
     kills: 0, medals: 0, slots: { fighter: TYPES.fighter.max, bomber: TYPES.bomber.max },
   };
@@ -197,23 +195,7 @@ function spend(amount, why) {
     if (!S.emergency.some(l => l.left > 0)) takeEmergency();
     else if (canLoan()) takeLoan(true);
   }
-  // senza più prestiti disponibili: la partita si ferma e il giocatore può scegliere se salvarsi sacrificando reputazione
-  if (S.credits < 0 && !S.over && !S.bankrupt) S.bankrupt = { why, shown: false };
-}
-const bankruptText = why => `I crediti sono finiti${why ? ' (' + why.toLowerCase() + ')' : ''}: il prestito di emergenza è ancora da restituire e non è possibile chiedere altri prestiti ONU.`;
-function offerRescue() {
-  const b = S.bankrupt; b.shown = true;
-  b.resume = S.speed === CFG.turboSpeed ? S.prevSpeed : (S.speed || 60);
-  S.speed = 0;
-  const deficit = -S.credits, per = CFG.rescueCreditsPerRep;
-  const need = Math.ceil(deficit / per);
-  const opts = [need, need + CFG.rescueBuffer].filter(n => S.rep - n > 0);
-  if (!opts.length) { S.bankrupt = null; gameOver('Bancarotta', `${bankruptText(b.why)} Non hai abbastanza reputazione (${Math.round(S.rep)}%) per coprire il debito di ${Math.ceil(deficit)} crediti (${per} crediti per 1%).`); return; }
-  openModal(`<h2>Bancarotta</h2>
-    <p>${bankruptText(b.why)} Debito: <b>${Math.ceil(deficit)} crediti</b>.</p>
-    <p>Puoi salvarti chiedendo fondi al comando in cambio di reputazione: <b>${per} crediti per ogni 1%</b>. Ora hai il ${Math.round(S.rep)}% di reputazione.</p>
-    <div class="modal-actions">${opts.map((n, i) => `<button class="btn ${i ? 'ghost' : ''}" data-action="rescue" data-a="${n}">Sacrifica ${n}% → +${n * per} crediti${i ? ' (con margine)' : ''}, reputazione ${Math.round(S.rep)}% → ${Math.round(S.rep - n)}%</button>`).join('')}
-      <button class="btn danger" data-action="declineRescue">Accetta la bancarotta</button></div>`);
+  if (S.credits < 0 && !S.over) gameOver('Bancarotta', `I crediti sono finiti${why ? ' (' + why.toLowerCase() + ')' : ''}: il prestito di emergenza è ancora da restituire e non è possibile chiedere altri prestiti ONU.`);
 }
 // ---------- Prestiti ONU ----------
 const recentLoans = () => S.loans.filter(l => S.t - l.takenAt < CFG.loanWindowDays * DAY);
@@ -344,18 +326,6 @@ const A = {
     addLog(`${p.id} decolla per l'addestramento a ${S.training.base.name}: arrivo tra ${fmtDur(dist(p, S.training.base) / p.speed * 60)}.`);
   },
   closeModal() { closeModal(); },
-  toggleLog() { logOpen = !logOpen; },
-  help() { helpModal(); },
-  rescue(n) {
-    n = +n; const b = S.bankrupt;
-    if (!b || !(n > 0) || S.rep - n <= 0) return;
-    S.credits += n * CFG.rescueCreditsPerRep;
-    changeRep(-n);
-    addLog(`Salvataggio dalla bancarotta: reputazione −${n}%, +${n * CFG.rescueCreditsPerRep} crediti.`, 'bad');
-    S.bankrupt = null; closeModal(); S.speed = b.resume;
-    if (S.credits < 0) S.bankrupt = { why: b.why, shown: false };
-  },
-  declineRescue() { const b = S.bankrupt; S.bankrupt = null; gameOver('Bancarotta', bankruptText(b && b.why)); },
   retarget(planeId, threatId) {
     const p = findPlane(planeId), th = findThreat(threatId);
     if (!p || p.state !== 'rtb' || !th || isStrike(p) || p.damaged) return;
@@ -387,6 +357,8 @@ const A = {
   },
   selectThreat(id) { S.selectedThreat = S.selectedThreat === id ? null : id; panelDirty = true; },
   restart() { newGame(); },
+  help() { helpModal(); },
+  tab(t) { panelTab = t; panelDirty = true; panel.scrollTop = 0; },
   loan() { takeLoan(false); },
 };
 const readyOf = type => planesOf(type).filter(p => p.state === 'base').sort((a, b) => b.speed - a.speed);
@@ -785,19 +757,11 @@ const tooltip = document.getElementById('tooltip');
 let W = 0, H = 0, colors = {};
 function readColors() {
   const cs = getComputedStyle(document.documentElement);
-  for (const k of ['ocean', 'land', 'coast', 'grid', 'ink', 'ink-soft', 'base', 'threat', 'fighter', 'bomber', 'tactical', 'panel']) colors[k] = cs.getPropertyValue('--' + k).trim();
+  for (const k of ['ocean', 'ocean-hi', 'land', 'coast', 'grid', 'ink', 'ink-soft', 'base', 'threat', 'fighter', 'bomber', 'tactical', 'panel']) colors[k] = cs.getPropertyValue('--' + k).trim();
 }
 function resize() {
-  const wrap = canvas.parentElement, cs = getComputedStyle(wrap);
-  const padX = parseFloat(cs.paddingLeft) * 2, padY = parseFloat(cs.paddingTop) * 2;
-  let cssW = wrap.clientWidth - padX;
-  // desktop: la mappa riempie l'area in alto a sinistra mantenendo la proporzione 2:1
-  const desktop = window.matchMedia('(min-width: 901px)').matches;
-  if (desktop) {
-    const legend = wrap.querySelector('.legend'), lh = legend ? legend.offsetHeight + 8 : 0;
-    cssW = Math.max(300, Math.min(cssW, 2 * (wrap.clientHeight - padY - lh)));
-  }
-  canvas.style.width = desktop ? cssW + 'px' : '';
+  const wrap = canvas.parentElement;
+  const cssW = wrap.clientWidth - parseFloat(getComputedStyle(wrap).paddingLeft) * 2;
   W = cssW; H = cssW / 2;
   const dpr = window.devicePixelRatio || 1;
   canvas.width = W * dpr; canvas.height = H * dpr; canvas.style.height = H + 'px';
@@ -856,12 +820,26 @@ const geoLine = (a, b, color, dash, alpha, w) => strokePts(geoPts(a, b), color, 
 // proiezione della rotta di una minaccia lungo il cerchio massimo
 const courseFrom = (o, brg, km, n = 16) => Array.from({ length: n + 1 }, (_, i) => i ? travel(o, brg, km * i / n).pos : { lat: o.lat, lon: o.lon });
 
+// testo con alone, leggibile sopra terra, mare e rotte
+function txt(s, x, y) {
+  ctx.save(); ctx.lineJoin = 'round'; ctx.lineWidth = 3.5; ctx.strokeStyle = colors.ocean; ctx.globalAlpha = 0.85;
+  ctx.strokeText(s, x, y); ctx.restore(); ctx.fillText(s, x, y);
+}
 function draw(now) {
-  ctx.fillStyle = colors.ocean; ctx.fillRect(0, 0, W, H);
+  const og = ctx.createLinearGradient(0, 0, 0, H);
+  og.addColorStop(0, colors['ocean-hi'] || colors.ocean); og.addColorStop(1, colors.ocean);
+  ctx.fillStyle = og; ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.beginPath();
   for (let lon = -150; lon < 180; lon += 30) { const x = (lon + 180) / 360 * W; ctx.moveTo(x, 0); ctx.lineTo(x, H); }
   for (let lat = -60; lat <= 60; lat += 30) { const y = (90 - lat) / 180 * H; ctx.moveTo(0, y); ctx.lineTo(W, y); }
   ctx.stroke();
+  // equatore e tropici più marcati, etichette dei paralleli
+  ctx.save(); ctx.strokeStyle = colors.grid; ctx.lineWidth = 1.5; ctx.setLineDash([3, 5]); ctx.beginPath();
+  ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke(); ctx.restore();
+  ctx.fillStyle = colors['ink-soft']; ctx.globalAlpha = 0.55; ctx.font = '500 10px "Chakra Petch", system-ui, sans-serif';
+  for (let lat = -60; lat <= 60; lat += 30) ctx.fillText(lat === 0 ? '0°' : `${Math.abs(lat)}°${lat > 0 ? 'N' : 'S'}`, 4, (90 - lat) / 180 * H - 3);
+  for (let lon = -150; lon < 180; lon += 30) ctx.fillText(lon === 0 ? '0°' : `${Math.abs(lon)}°${lon > 0 ? 'E' : 'O'}`, (lon + 180) / 360 * W + 3, H - 4);
+  ctx.globalAlpha = 1;
   ctx.fillStyle = colors.land; ctx.strokeStyle = colors.coast; ctx.lineWidth = 0.6;
   ctx.beginPath();
   for (const ring of LAND_RINGS) {
@@ -883,7 +861,7 @@ function draw(now) {
       ctx.beginPath(); ctx.arc(x, y, 12 + pulse * 6, 0, Math.PI * 2);
       ctx.strokeStyle = colors.base; ctx.globalAlpha = 0.5 * (1 - pulse); ctx.lineWidth = 1.5; ctx.stroke(); ctx.globalAlpha = 1;
       ctx.fillStyle = colors.ink; ctx.font = '600 12px Barlow, system-ui, sans-serif';
-      ctx.fillText(s.name, x + 10, y - 8);
+      txt(s.name, x + 10, y - 8);
     });
     return;
   }
@@ -891,7 +869,7 @@ function draw(now) {
   const [bx, by] = px(S.base);
   ctx.save(); ctx.translate(bx, by); ctx.rotate(Math.PI / 4);
   ctx.fillStyle = colors.base; ctx.fillRect(-6, -6, 12, 12); ctx.restore();
-  ctx.fillStyle = colors.ink; ctx.font = '600 12px Barlow, system-ui, sans-serif'; ctx.fillText(S.base.name, bx + 11, by + 4);
+  ctx.fillStyle = colors.ink; ctx.font = '600 12px Barlow, system-ui, sans-serif'; txt(S.base.name, bx + 11, by + 4);
 
   const line = (a, b, color, dash, alpha = 0.6, w = 1) => geoLine(a, b, color, dash, alpha, w);
 
@@ -917,8 +895,8 @@ function draw(now) {
     ctx.save(); ctx.translate(tx, ty); ctx.strokeStyle = colors.tactical; ctx.lineWidth = 2; ctx.beginPath();
     ctx.moveTo(0, -r); ctx.lineTo(r, 0); ctx.lineTo(0, r); ctx.lineTo(-r, 0); ctx.closePath(); ctx.stroke(); ctx.restore();
     ctx.fillStyle = colors.tactical; ctx.font = '600 11px "Chakra Petch", system-ui, sans-serif';
-    ctx.fillText(`Addestramento ${S.training.base.name}`, tx + 12, ty - 6);
-    ctx.fillStyle = colors['ink-soft']; ctx.fillText(`scade tra ${fmtDur(S.training.until - S.t)}`, tx + 12, ty + 8);
+    txt(`Addestramento ${S.training.base.name}`, tx + 12, ty - 6);
+    ctx.fillStyle = colors['ink-soft']; txt(`scade tra ${fmtDur(S.training.until - S.t)}`, tx + 12, ty + 8);
   }
 
   // rotte degli aerei: sempre archi di cerchio massimo, come le traiettorie reali
@@ -960,9 +938,9 @@ function draw(now) {
       ctx.stroke(); ctx.restore();
       ctx.beginPath(); ctx.arc(x, y, sel ? 18 : 16, 0, Math.PI * 2); ctx.setLineDash(sel ? [] : [2, 3]); ctx.strokeStyle = colors.threat; ctx.lineWidth = sel ? 2 : 1; ctx.stroke(); ctx.setLineDash([]);
       ctx.fillStyle = colors.threat;
-      ctx.fillText(`${th.id} attacca ${th.attack.name.replace(' (la tua base)', '')}`, x + 20, y - 4);
+      txt(`${th.id} attacca ${th.attack.name.replace(' (la tua base)', '')}`, x + 20, y - 4);
       ctx.fillStyle = colors['ink-soft'];
-      ctx.fillText(`riparte tra ${fmtDur(th.cooldownUntil - S.t)}`, x + 20, y + 10);
+      txt(`riparte tra ${fmtDur(th.cooldownUntil - S.t)}`, x + 20, y + 10);
       continue;
     }
     if (th.state === 'hunting') { const prey = findPlane(th.prey); if (prey) line(th, prey, colors.threat, [2, 3], 0.9, 1.5); }
@@ -970,7 +948,7 @@ function draw(now) {
     ctx.strokeStyle = colors.threat; ctx.globalAlpha = 0.45 * (1 - pulse); ctx.lineWidth = 2; ctx.stroke(); ctx.globalAlpha = 1;
     drawArrow(x, y, th.bearing, colors.threat, sel ? 9 : 7);
     if (sel) { ctx.beginPath(); ctx.arc(x, y, 14, 0, Math.PI * 2); ctx.strokeStyle = colors.threat; ctx.lineWidth = 1.5; ctx.stroke(); }
-    ctx.fillStyle = colors.threat; ctx.fillText(th.id, x + 10, y - 8);
+    ctx.fillStyle = colors.threat; txt(th.id, x + 10, y - 8);
   }
 
   // aerei
@@ -983,7 +961,7 @@ function draw(now) {
     // scorta agganciata: scostata di qualche pixel
     ctx.fillStyle = c; ctx.font = '600 11px "Chakra Petch", system-ui, sans-serif';
     const off = p.state === 'escort' && !p.engaged ? 12 : 0;
-    ctx.fillText(p.id, x + 10, y + 12 + off);
+    txt(p.id, x + 10, y + 12 + off);
   }
 }
 function drawBomber(x, y, brg, color, tactical) {
@@ -1025,7 +1003,8 @@ canvas.addEventListener('mousemove', e => {
   }
   if (html) {
     tooltip.innerHTML = html; tooltip.style.display = 'block';
-    tooltip.style.left = (canvas.offsetLeft + Math.min(x + 14, canvas.clientWidth - 200)) + 'px'; tooltip.style.top = (canvas.offsetTop + y + 14) + 'px';
+    const left = Math.min(x + 28, canvas.clientWidth - 200);
+    tooltip.style.left = left + 'px'; tooltip.style.top = (y + 28) + 'px';
   } else tooltip.style.display = 'none';
 });
 canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; if (!S.base) { S.hoverSite = null; panelDirty = true; } });
@@ -1037,18 +1016,14 @@ canvas.addEventListener('click', e => {
 });
 
 // ---------- Pannello ----------
-const pForces = document.getElementById('pForces'), pEco = document.getElementById('pEco'), pSupport = document.getElementById('pSupport');
-const areas = [pForces, pEco, pSupport];
-let logOpen = false;
-// ogni area ha il suo scroll: si aggiorna il contenuto senza perdere la posizione
-function setAreas(forces, eco, support) {
-  for (const [el, html] of [[pForces, forces], [pEco, eco], [pSupport, support]]) {
-    const top = el.scrollTop; el.innerHTML = html; el.scrollTop = top;
-  }
-}
+const panel = document.getElementById('panel');
 let panelDirty = true;
+let panelTab = 'minacce';
+const openHelp = new Set();
+const helpBox = (k, title, html) => `<details class="help" data-k="${k}" ${openHelp.has(k) ? 'open' : ''}><summary>${title}</summary>${html}</details>`;
 let pointerDown = false;
-areas.forEach(a => a.addEventListener('pointerdown', () => pointerDown = true));
+panel.addEventListener('pointerdown', () => pointerDown = true);
+panel.addEventListener('toggle', e => { const d = e.target; if (d.dataset && d.dataset.k) d.open ? openHelp.add(d.dataset.k) : openHelp.delete(d.dataset.k); }, true);
 window.addEventListener('pointerup', () => setTimeout(() => pointerDown = false, 0));
 function renderPanel(force) {
   renderTop();
@@ -1059,29 +1034,21 @@ function renderPanel(force) {
 function renderTop() {
   document.getElementById('clock').textContent = fmtClock(S.t, S.speed === 1);
   const cr = document.getElementById('credits');
-  cr.innerHTML = `${Math.floor(S.credits)}<small>crediti</small>`;
+  cr.textContent = Math.floor(S.credits).toLocaleString('it-IT');
   cr.classList.toggle('low', S.credits < 150);
   const rep = document.getElementById('rep');
   const r = Math.round(S.rep);
-  rep.innerHTML = `<span>Reputazione ${r}%<em class="medals" title="Grado e medaglie (obiettivo ${MEDALS_GOAL})">${RANKS[rankIdx(S.medals)].name} · ${S.medals}/${MEDALS_GOAL} ${S.medals === 1 ? 'medaglia' : 'medaglie'}</em></span><div class="repbar"><i style="width:${r}%"></i></div>`;
+  rep.innerHTML = `<span class="label">Reputazione</span><div class="repval"><b>${r}%</b><em class="medals" title="Grado e medaglie (obiettivo ${MEDALS_GOAL})">${RANKS[rankIdx(S.medals)].name} · ${S.medals}/${MEDALS_GOAL} ★</em></div><div class="repbar"><i style="width:${r}%"></i></div>`;
   rep.classList.toggle('low', r <= 50);
   document.querySelectorAll('#speeds button').forEach(b => {
     b.setAttribute('aria-pressed', String(+b.dataset.speed === S.speed));
-    if (+b.dataset.speed === CFG.turboSpeed) b.textContent = S.speed === CFG.turboSpeed ? `1 ora/s (${Math.ceil(S.turboLeft / 60)}h)` : '1 ora/s';
+    if (+b.dataset.speed === CFG.turboSpeed) b.textContent = S.speed === CFG.turboSpeed ? `1h · ${Math.ceil(S.turboLeft / 60)}h` : '1h';
     b.disabled = !S.base || S.over;
   });
 }
-// registro: barra in fondo allo schermo, nascosta finché non la apri
 function renderLog() {
-  const box = document.getElementById('logbox'), old = box.querySelector('.log'), top = old ? old.scrollTop : 0;
-  const last = S.log[0];
-  box.classList.toggle('open', logOpen);
-  box.innerHTML = `<button class="logtoggle" data-action="toggleLog" aria-expanded="${logOpen}">
-      <span class="logname">Registro <kbd>L</kbd></span>
-      <span class="logpreview ${last ? last.kind : ''}">${last ? `<time>${fmtShort(last.t)}</time> ${last.msg}` : ''}</span>
-      <span class="logarrow">${logOpen ? '▼' : '▲'}</span></button>
-    ${logOpen ? `<ul class="log">${S.log.map(l => `<li class="${l.kind}"><time>${fmtShort(l.t)}</time><span>${l.msg}</span></li>`).join('')}</ul>` : ''}`;
-  const ul = box.querySelector('.log'); if (ul) ul.scrollTop = top;
+  document.getElementById('logbox').innerHTML = `<h2>Registro</h2>
+    <ul class="log">${S.log.map(l => `<li class="${l.kind}"><time>${fmtShort(l.t)}</time><span>${l.msg}</span></li>`).join('')}</ul>`;
 }
 function planeStateText(p) {
   if (p.state === 'base') return 'Pronto alla base';
@@ -1193,10 +1160,10 @@ function loanBlock() {
   const emOpen = S.emergency.filter(l => l.left > 0);
   const avail = CFG.loanMax - recentLoans().length;
   const debt = open.reduce((s, l) => s + l.left * CFG.loanInstallment, 0);
-  return `<section class="block loan ecocol">
+  return `<section class="block loan">
     <h2>Prestito ONU <span class="count">${avail} di ${CFG.loanMax} disponibili</span></h2>
     <button class="btn ${S.credits < 300 ? '' : 'ghost'}" data-action="loan" ${avail ? '' : 'disabled'}>Chiedi ${CFG.loanAmount} crediti</button>
-    <p class="note">Rimborso in ${CFG.loanInstallments} rate da ${CFG.loanInstallment} a mezzanotte, massimo ${CFG.loanMax} prestiti ogni ${CFG.loanWindowDays} giorni. Se i crediti vanno in negativo si attiva da solo un prestito fornitori di emergenza di ${CFG.emergencyAmount} crediti (${CFG.emergencyInstallments} rate da ${CFG.emergencyInstallment}), che non conta tra i prestiti ONU; se ne è già aperto uno, si usa un prestito ONU disponibile. Se anche questi finiscono puoi salvarti sacrificando reputazione: ${CFG.rescueCreditsPerRep} crediti per 1%.
+    <p class="note">Rimborso in ${CFG.loanInstallments} rate da ${CFG.loanInstallment} a mezzanotte, massimo ${CFG.loanMax} prestiti ogni ${CFG.loanWindowDays} giorni. Se i crediti vanno in negativo si attiva da solo un prestito fornitori di emergenza di ${CFG.emergencyAmount} crediti (${CFG.emergencyInstallments} rate da ${CFG.emergencyInstallment}), che non conta tra i prestiti ONU; se ne è già aperto uno, si usa un prestito ONU disponibile.
     ${emOpen.length ? `<br><b>Emergenza: debito residuo ${emOpen.reduce((s, l) => s + l.left * CFG.emergencyInstallment, 0)} crediti</b> (${emOpen.map(l => `${l.id}: ${l.left} ${l.left === 1 ? 'rata' : 'rate'}`).join(', ')}).` : ''}
     ${open.length ? `<br><b>Debito residuo ${debt} crediti</b> (${open.map(l => `${l.id}: ${l.left} ${l.left === 1 ? 'rata' : 'rate'}`).join(', ')}).` : ''}
     ${avail ? '' : `<br>Prossimo prestito disponibile tra ${fmtDur(nextLoanIn())}.`}</p>
@@ -1206,15 +1173,14 @@ function renderPanelBody() {
   if (!S.base) {
     renderLog();
     const conts = new Set(S.sites.map(s => s.cont)).size;
-    setAreas(`<section class="block"><ul class="sites">${S.sites.map((s, i) => `
+    panel.innerHTML = `<section class="block">
+      <h2>Scegli la base operativa</h2>
+      <p class="note">Hai ${CFG.startCredits} crediti e ${CFG.startRep}% di reputazione. Il tempo partirà da 21 marzo 2049, 12:00 appena scegli. Località proposte in ${conts} continenti.</p>
+    </section><section class="block"><ul class="sites">${S.sites.map((s, i) => `
       <li class="${S.hoverSite === i ? 'hover' : ''}" data-hover="${i}">
         <div><div class="name">${s.name}</div><div class="meta">${s.zone}, ${s.state}, ${s.cont}</div></div>
         <button class="btn" data-action="pickBase" data-a="${i}">Stabilisci qui</button>
-      </li>`).join('')}</ul></section>`,
-      `<section class="block">
-      <h2>Scegli la base operativa</h2>
-      <p class="note">Hai ${CFG.startCredits} crediti e ${CFG.startRep}% di reputazione. Il tempo partirà da 21 marzo 2049, 12:00 appena scegli. Località proposte in ${conts} continenti: clicca sulla mappa o usa l'elenco.</p>
-    </section>`, '');
+      </li>`).join('')}</ul></section>`;
     return;
   }
 
@@ -1254,26 +1220,33 @@ function renderPanelBody() {
       </div></div>`;
   }).join('') || '<p class="empty">Nessuna minaccia segnalata. Attiva i ricognitori per scoprirne.</p>';
 
-  const eco = `<div class="ecogrid">
-  <section class="block ecocol">
+  const secBase = `
+  <section class="block">
     <h2>Base: ${S.base.name}</h2>
     ${rankBlock()}
-    <p class="note">${S.base.zone}, ${S.base.state}, ${S.base.cont}. Minacce eliminate: ${S.kills}. Punti medaglia: ${S.medals} (al massimo 1 al giorno: ${CFG.medalChancePerPoint * 100}% di probabilità per ogni punto di reputazione che andrebbe oltre il 100%). La reputazione si recupera con i ricognitori e cala di ${CFG.repLossCooldown}% per ogni attacco portato a termine.</p>
-  </section>
-  ${loanBlock()}</div>`;
-  const forces = `
+    <div class="kpis">
+      <div><b>${S.kills}</b><span>Minacce eliminate</span></div>
+      <div><b>${S.medals}</b><span>Medaglie</span></div>
+      <div><b>${(S.t / DAY).toFixed(1)}</b><span>Giorni di servizio</span></div>
+    </div>
+    <p class="note">${S.base.zone}, ${S.base.state}, ${S.base.cont}.</p>
+    ${helpBox('base', 'Come funzionano medaglie e reputazione', `<p class="note">Punti medaglia: ${S.medals} (al massimo 1 al giorno: ${CFG.medalChancePerPoint * 100}% di probabilità per ogni punto di reputazione che andrebbe oltre il 100%). La reputazione si recupera con i ricognitori e cala di ${CFG.repLossCooldown}% per ogni attacco portato a termine.</p>`)}
+  </section>`;
+  const secThreats = `
   <section class="block">
     <h2>Minacce <span class="count">${S.threats.length}</span></h2>
     ${threatRows}
-    ${S.threats.length ? `<p class="note">In volo si colpiscono con i caccia (${Math.round(winCh() * 100)}% al contatto, +${CFG.killReward}). Mentre attaccano una base solo bombardiere (+${CFG.killReward}, −${CFG.rebuildCost} di ricostruzione) e aereo tattico (+${CFG.tacticalReward}) possono eliminarle.</p>` : ''}
-  </section>
+    ${S.threats.length ? helpBox('threats', 'Regole di ingaggio', `<p class="note">In volo si colpiscono con i caccia (${Math.round(winCh() * 100)}% al contatto, +${CFG.killReward}). Mentre attaccano una base solo bombardiere (+${CFG.killReward}, −${CFG.rebuildCost} di ricostruzione) e aereo tattico (+${CFG.tacticalReward}) possono eliminarle.</p>`) : ''}
+  </section>`;
+  const secFighters = `
   <section class="block">
     <h2>Caccia <span class="count">${fighters.length}/${maxOf('fighter')}</span>
       <button class="btn ghost" data-action="buy" data-a="fighter" ${fighters.length >= maxOf('fighter') ? 'disabled' : ''}>Compra</button></h2>
     ${S.slots.fighter < CFG.slotMax.fighter ? `<div class="buyrow"><button class="btn ghost" data-action="buySlot" data-a="fighter" ${S.credits < CFG.slotCost.fighter ? 'disabled' : ''}>Sblocca un posto caccia (${CFG.slotCost.fighter} crediti, fino a ${CFG.slotMax.fighter})</button></div>` : ''}
     ${fighters.map(p => planeCard(p, aut)).join('') || '<p class="empty">Nessun caccia. Ti serve almeno un caccia per intercettare le minacce.</p>'}
-    <p class="note">${TYPES.fighter.perHour} crediti per ora di volo, ${TYPES.fighter.base}-${TYPES.fighter.top} km/h. In scorta attaccano da soli le minacce entro ${CFG.escortRangeKm} km dall'aereo scortato. Un caccia abbattuto è perso e costa ${CFG.lossPenalty.fighter} crediti di penale. Dotazioni a terra, una per caccia, ${CFG.gear.shield.cost} crediti l'una e consumate all'uso: difesa jet (salva il caccia, che rientra a metà velocità), missile fotonico (a ${CFG.gear.missile.rangeKm} km, ${CFG.gear.missile.chance * 100}% di distruggere il bersaglio), motore sonico (velocità doppia per 24 h dal decollo). Ogni ${CFG.killsForUpgrade} abbattimenti un caccia ottiene un potenziamento istantaneo al rientro. Durante il potenziamento normale (24 h) non può decollare.</p>
-  </section>
+    ${helpBox('fighters', 'Costi, dotazioni e potenziamenti', `<p class="note">${TYPES.fighter.perHour} crediti per ora di volo, ${TYPES.fighter.base}-${TYPES.fighter.top} km/h. In scorta attaccano da soli le minacce entro ${CFG.escortRangeKm} km dall'aereo scortato. Un caccia abbattuto è perso e costa ${CFG.lossPenalty.fighter} crediti di penale. Dotazioni a terra, una per caccia, ${CFG.gear.shield.cost} crediti l'una e consumate all'uso: difesa jet (salva il caccia, che rientra a metà velocità), missile fotonico (a ${CFG.gear.missile.rangeKm} km, ${CFG.gear.missile.chance * 100}% di distruggere il bersaglio), motore sonico (velocità doppia per 24 h dal decollo). Ogni ${CFG.killsForUpgrade} abbattimenti un caccia ottiene un potenziamento istantaneo al rientro. Durante il potenziamento normale (24 h) non può decollare.</p>`)}
+  </section>`;
+  const secStrike = `
   <section class="block">
     <h2>Attacco al suolo <span class="count">${strikers.length}/${maxOf('bomber') + maxOf('tactical')}</span></h2>
     <div class="buyrow">
@@ -1283,17 +1256,26 @@ function renderPanelBody() {
     </div>
     ${maxOf('tactical') < 2 ? `<p class="note">Con ${CFG.tacticalBonusAtBombers} bombardieri si sblocca il secondo aereo tattico.</p>` : ''}
     ${strikers.map(p => planeCard(p, aut)).join('') || '<p class="empty">Nessun aereo d\'attacco. Servono per colpire le minacce che stanno attaccando una base.</p>'}
-    <p class="note">Bombardiere ${TYPES.bomber.perHour} crediti/ora, aereo tattico ${TYPES.tactical.perHour} crediti/ora; entrambi ${TYPES.bomber.base}-${TYPES.bomber.top} km/h. Autonomia illimitata, ma dopo ogni missione devono rientrare alla base prima di ripartire. Le minacce entro ${CFG.huntRangeKm} km possono andargli incontro: senza scorta hanno solo il ${CFG.strikeDefense * 100}% di cavarsela. Se abbattuti: penale ${CFG.lossPenalty.bomber} (bombardiere) o ${CFG.lossPenalty.tactical} (tattico) e un giorno di ripristino. Ogni ${CFG.winsForUpgrade} missioni vinte ottengono un potenziamento istantaneo e gratuito al rientro; durante il potenziamento normale non possono decollare.</p>
+    ${helpBox('strike', 'Costi e regole degli aerei d\'attacco', `<p class="note">Bombardiere ${TYPES.bomber.perHour} crediti/ora, aereo tattico ${TYPES.tactical.perHour} crediti/ora; entrambi ${TYPES.bomber.base}-${TYPES.bomber.top} km/h. Autonomia illimitata, ma dopo ogni missione devono rientrare alla base prima di ripartire. Le minacce entro ${CFG.huntRangeKm} km possono andargli incontro: senza scorta hanno solo il ${CFG.strikeDefense * 100}% di cavarsela. Se abbattuti: penale ${CFG.lossPenalty.bomber} (bombardiere) o ${CFG.lossPenalty.tactical} (tattico) e un giorno di ripristino. Ogni ${CFG.winsForUpgrade} missioni vinte ottengono un potenziamento istantaneo e gratuito al rientro; durante il potenziamento normale non possono decollare.</p>`)}
   </section>`;
-  const support = `
+  const secSupport = `
   <section class="block">
-    <h2>Supporto aereo</h2>
+    <h2>Supporto</h2>
     ${supportBlock('recon', 'Ricognitori', CFG.reconLevels, CFG.reconPerDay,
       `${CFG.reconPerDay} crediti al giorno ciascuno. Reputazione recuperata ogni giorno: ${CFG.reconLevels.filter(l => l).map(l => `${l} → +${CFG.reconRep[l]}`).join(', ')}, triplicata sotto il 50% di reputazione e raddoppiata tra 50% e 90%${repMult(S.rep) > 1 ? ` (ora ×${repMult(S.rep)})` : ''}. Ognuno segnala minacce a caso, in media una ogni ${CFG.reconSignalDays} giorni.${S.support.signals ? ` Segnalazioni finora: ${S.support.signals}.` : ''}`)}
     ${supportBlock('tanker', 'Rifornitori', CFG.tankerLevels, CFG.tankerPerDay,
       `${CFG.tankerPerDay} crediti al giorno ciascuno, +${CFG.tankerBonusH} h di autonomia ai caccia per ognuno. Autonomia per i prossimi decolli: ${aut.toFixed(0)} h; ridurli non toglie autonomia ai caccia già in volo. Ogni modifica blocca i livelli per 24 ore.${Object.keys(CFG.tankerRepLoss).map(k => ` Con ${k} attivi la reputazione cala di ${CFG.tankerRepLoss[k]} al giorno.`).join('')}`)}
   </section>`;
-  setAreas(forces, eco, support);
+  const alert = S.threats.some(t => t.state === 'hunting' || t.state === 'cooldown');
+  const tabs = [
+    ['minacce', 'Minacce', S.threats.length, alert],
+    ['flotta', 'Flotta', fighters.length + strikers.length, false],
+    ['logistica', 'Logistica', 0, false],
+    ['missione', 'Missione', 0, false],
+  ];
+  const body = { minacce: secThreats, flotta: secFighters + secStrike, logistica: loanBlock() + secSupport, missione: secBase }[panelTab] || secThreats;
+  panel.innerHTML = `<nav class="tabs" role="tablist" aria-label="Sezioni">${tabs.map(([k, label, n, hot]) =>
+    `<button role="tab" data-action="tab" data-a="${k}" aria-selected="${k === panelTab}">${label}${n ? `<span class="badge ${hot ? 'hot' : ''}">${n}</span>` : ''}</button>`).join('')}</nav>${body}`;
   renderLog();
 }
 document.addEventListener('click', e => {
@@ -1305,7 +1287,7 @@ document.addEventListener('click', e => {
 document.getElementById('speeds').addEventListener('click', e => {
   const b = e.target.closest('button[data-speed]'); if (b && !b.disabled) { A.speed(b.dataset.speed); renderPanel(); }
 });
-pForces.addEventListener('mouseover', e => {
+panel.addEventListener('mouseover', e => {
   const li = e.target.closest('[data-hover]');
   if (S && !S.base) S.hoverSite = li ? +li.dataset.hover : null;
 });
@@ -1315,7 +1297,7 @@ const SPEED_KEYS = { 1: 0, 2: 1, 3: 60, 4: 120, 5: 300, 6: 900, 7: CFG.turboSpee
 function helpModal() {
   openModal(`<h2>Scorciatoie e gradi</h2>
     <p><kbd>Spazio</kbd> pausa / riprendi · <kbd>1</kbd>-<kbd>7</kbd> velocità (pausa, tempo reale, 1, 2, 5, 15 min/s, 1 ora/s)<br>
-    <kbd>L</kbd> apre/chiude il registro · <kbd>T</kbd> minaccia successiva · <kbd>Esc</kbd> deseleziona · <kbd>I</kbd> intercetta la minaccia selezionata col caccia più veloce<br>
+    <kbd>T</kbd> minaccia successiva · <kbd>Esc</kbd> deseleziona · <kbd>I</kbd> intercetta la minaccia selezionata col caccia più veloce<br>
     <kbd>B</kbd> bombardiere / <kbd>A</kbd> aereo tattico contro la minaccia selezionata a terra · <kbd>?</kbd> questo aiuto</p>
     <p>${RANKS.map(r => `<b>${r.name}</b> ${r.at}`).join(' · ')}</p>
     <button class="btn" data-action="closeModal">Chiudi</button>`);
@@ -1323,7 +1305,7 @@ function helpModal() {
 document.addEventListener('keydown', e => {
   if (!S || e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
   const k = e.key;
-  if (modal.classList.contains('open')) { if (k === 'Escape' && !S.over && !S.bankrupt) closeModal(); return; }
+  if (modal.classList.contains('open')) { if (k === 'Escape' && !S.over) closeModal(); return; }
   if (k === '?' || k === 'h' || k === 'H') { helpModal(); return; }
   if (!S.base || S.over) return;
   let handled = true;
@@ -1331,8 +1313,7 @@ document.addEventListener('keydown', e => {
     if (e.target.closest && e.target.closest('button')) return; // lo spazio attiva il pulsante col focus
     if (S.speed > 0) { S.prevSpeed = S.speed; A.speed(0); } else A.speed(S.prevSpeed > 0 && S.prevSpeed !== CFG.turboSpeed ? S.prevSpeed : 60);
   } else if (SPEED_KEYS[k] !== undefined) A.speed(SPEED_KEYS[k]);
-  else if (k === 'l' || k === 'L') logOpen = !logOpen;
-  else if (k === 'Escape') { if (logOpen) logOpen = false; else S.selectedThreat = null; }
+  else if (k === 'Escape') { S.selectedThreat = null; }
   else if (k === 't' || k === 'T') {
     const ids = S.threats.map(t => t.id);
     if (ids.length) S.selectedThreat = ids[(ids.indexOf(S.selectedThreat) + 1) % ids.length];
@@ -1357,7 +1338,7 @@ function frame(now) {
   const realDt = Math.min(2, (now - last) / 1000); last = now;
   if (S && S.base && !S.over && S.speed > 0) {
     let gameMin = realDt * S.speed / 60;
-    while (gameMin > 0 && !S.over && !S.bankrupt) {
+    while (gameMin > 0 && !S.over) {
       const d = Math.min(1, gameMin); step(d); gameMin -= d;
       if (S.speed === CFG.turboSpeed) {
         S.turboLeft -= d;
@@ -1370,13 +1351,11 @@ function frame(now) {
     }
     if (now - lastPanel > 250) { panelDirty = true; lastPanel = now; }
   }
-  if (S && S.bankrupt && !S.bankrupt.shown && !S.over) offerRescue();
   if (S) { draw(now); renderPanel(); }
   requestAnimationFrame(frame);
 }
 
 window.addEventListener('resize', () => { resize(); });
-if (window.ResizeObserver) new ResizeObserver(() => resize()).observe(document.getElementById('mapwrap'));
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColors);
 
 (async () => {

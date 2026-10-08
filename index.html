@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Difesa Aerea 2049</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&family=Chakra+Petch:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>Difesa Aerea 2049</h1>
+  <div class="clock" id="clock">21 marzo 2049, 12:00</div>
+  <div class="credits" id="credits">2500<small>crediti</small></div>
+  <div class="rep" id="rep"></div>
+  <div class="speeds" id="speeds" role="group" aria-label="Velocità di gioco">
+    <button data-speed="0">Pausa</button>
+    <button data-speed="1">Tempo reale</button>
+    <button data-speed="60">1 min/s</button>
+    <button data-speed="120">2 min/s</button>
+    <button data-speed="300">5 min/s</button>
+    <button data-speed="900">15 min/s</button>
+    <button data-speed="3600" title="Si disattiva da sola dopo 5 ore di gioco">1 ora/s</button>
+  </div>
+</header>
+<main class="layout">
+  <div class="mapwrap" id="mapwrap">
+    <canvas id="map" aria-label="Mappa del mondo"></canvas>
+    <div class="tooltip" id="tooltip"></div>
+    <div class="legend">
+      <span style="--c:var(--base)">Base operativa</span>
+      <span style="--c:var(--threat)">Minaccia</span>
+      <span style="--c:var(--fighter)">Caccia</span>
+      <span style="--c:var(--bomber)">Bombardiere</span>
+      <span style="--c:var(--tactical)">Aereo tattico</span>
+    </div>
+    <section class="logbox" id="logbox"></section>
+  </div>
+  <aside id="panel"></aside>
+</main>
+<div class="modal" id="modal"><div class="card" id="modalCard"></div></div>
+<script src="land.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

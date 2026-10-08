@@ -1,0 +1,218 @@
+Continente,Stato,Zona,Tipologia,Citta_riferimento,Lat_regione,Lon_regione,Lat_citta,Lon_citta
+Europa,Russia,Mosca,Città,Mosca,54.3,39.0,55.76,37.62
+Europa,Russia,Volga,Regione,San Pietroburgo,60.0,47.0,59.94,30.31
+Europa,Russia,Ciscaucasia,Regione,Rostov sul Don,46.0,42.0,47.24,39.71
+Europa,Russia,Siberia,Regione,Novosibirsk,62.0,105.0,55.03,82.92
+Europa,Germania,Germania settentrionale,Regione,Berlino,52.3,11.2,52.52,13.4
+Europa,Germania,Renania,Regione,Colonia,50.6,7.8,50.94,6.96
+Europa,Germania,Germania meridionale,Regione,Monaco di Baviera,48.8,10.5,48.14,11.58
+Europa,Regno Unito,Londra,Città,Londra,51.1,-2.0,51.51,-0.13
+Europa,Regno Unito,Nord Britannia,Regione,Manchester,55.0,-3.5,53.48,-2.24
+Europa,Irlanda,Irlanda,Stato,Dublino,53.4,-8.0,53.35,-6.26
+Europa,Francia,Parigi,Città,Parigi,49.4,3.3,48.86,2.35
+Europa,Francia,Francia meridionale,Regione,Lione,44.8,2.0,45.76,4.84
+Europa,Italia,Italia settentrionale,Regione,Milano,45.5,10.6,45.46,9.19
+Europa,Italia,Italia centro-meridionale,Regione,Roma,40.9,14.8,41.9,12.5
+Europa,Spagna,Spagna,Stato,Madrid,39.4,-3.3,40.42,-3.7
+Europa,Portogallo,Portogallo,Stato,Lisbona,39.6,-8.0,38.72,-9.14
+Europa,Arco dei Balcani,Balcania,Regione Internazionale,Atene,43.0,22.5,37.98,23.73
+Europa,Cuore Asburgico,Danubia,Regione Internazionale,Vienna,47.1,15.0,48.21,16.37
+Europa,Marca della Vistola,Sarmatia,Regione Internazionale,Minsk,52.5,23.5,53.9,27.56
+Europa,Terre Nere,Pontica,Regione Internazionale,Kiev,48.8,31.0,50.45,30.52
+Europa,Corona Boreale,Scandia,Regione Internazionale,Stoccolma,62.0,18.0,59.33,18.07
+Europa,Benelux,Lotaringia,Regione Internazionale,Bruxelles,51.6,5.3,50.85,4.35
+Asia,India,Delhi,Capitale,Nuova Delhi,27.9,76.8,28.61,77.21
+Asia,India,Mumbai,Città,Mumbai,18.0,73.3,19.08,72.88
+Asia,India,Kolkata,Città,Kolkata,21.8,88.5,22.57,88.36
+Asia,India,Chennai,Città,Chennai,12.5,79.5,13.08,80.27
+Asia,India,Bengaluru,Città,Bengaluru,12.8,76.6,12.97,77.59
+Asia,India,Hyderabad,Città,Hyderabad,18.2,79.3,17.39,78.49
+Asia,India,Ahmedabad,Città,Ahmedabad,24.0,72.3,23.02,72.57
+Asia,India,Awadh,Regione,Lucknow,26.5,81.9,26.85,80.95
+Asia,India,Purvanchal,Regione,Varanasi,26.3,83.4,25.32,82.97
+Asia,India,Doab,Regione,Kanpur,25.8,81.0,26.45,80.33
+Asia,India,Braj,Regione,Agra,27.3,79.0,27.18,78.01
+Asia,India,Rohilkhand,Regione,Bareilly,28.8,78.6,28.37,79.43
+Asia,India,Uttar Pradesh occidentale,Regione,Meerut,29.8,77.5,28.98,77.71
+Asia,India,Magadh,Regione,Patna,24.7,85.0,25.59,85.14
+Asia,India,Mithila,Regione,Darbhanga,26.0,86.9,26.15,85.9
+Asia,India,Bhojpur,Regione,Arrah,26.5,84.4,25.56,84.66
+Asia,India,Maharashtra occidentale,Regione,Pune,19.3,74.7,18.52,73.86
+Asia,India,Vidarbha,Regione,Nagpur,19.9,77.0,21.15,79.09
+Asia,India,Bengala settentrionale,Regione,Siliguri,25.6,88.3,26.73,88.4
+Asia,India,Rarh,Regione,Asansol,22.8,87.3,23.68,86.98
+Asia,India,Kongu,Regione,Coimbatore,10.3,78.0,11.02,76.96
+Asia,India,Karnataka settentrionale,Regione,Hubli-Dharwad,15.8,76.2,15.36,75.12
+Asia,India,Andhra,Regione,Visakhapatnam,15.9,79.7,17.69,83.22
+Asia,India,Kerala,Regione,Kochi,10.8,76.4,9.93,76.27
+Asia,India,Saurashtra,Regione,Surat,21.9,71.3,21.17,72.83
+Asia,India,Rajasthan orientale,Regione,Jaipur,25.9,75.9,26.91,75.79
+Asia,India,Marwar,Regione,Jodhpur,27.1,72.0,26.24,73.02
+Asia,India,Malwa,Regione,Indore,23.4,76.8,22.72,75.86
+Asia,India,Mahakoshal,Regione,Jabalpur,24.0,80.6,23.18,79.99
+Asia,India,Chhattisgarh,Regione,Raipur,22.2,82.3,21.25,81.63
+Asia,India,Odisha,Regione,Bhubaneswar,20.5,84.4,20.3,85.82
+Asia,India,Jharkhand,Regione,Jamshedpur,23.6,85.5,22.8,86.2
+Asia,India,Punjab orientale,Regione,Ludhiana,30.2,74.9,30.9,75.86
+Asia,India,Haryana,Regione,Panipat,29.1,76.1,29.39,76.97
+Asia,India,Himalaya indiano,Regione,Srinagar,32.5,77.5,34.08,74.8
+Asia,India,India nord-orientale,Regione,Guwahati,26.0,93.5,26.14,91.74
+Asia,Cina,Pechino,Capitale,Pechino,40.8,116.6,39.9,116.4
+Asia,Cina,Shanghai,Città,Shanghai,31.7,121.5,31.23,121.47
+Asia,Cina,Canton,Città,Guangzhou,24.0,113.2,23.13,113.26
+Asia,Cina,Grande Baia,Città,Shenzhen,23.4,114.6,22.54,114.06
+Asia,Cina,Chongqing,Città,Chongqing,30.0,107.8,29.56,106.55
+Asia,Cina,Chengdu,Città,Chengdu,29.7,103.8,30.57,104.07
+Asia,Cina,Tianjin,Città,Tianjin,39.4,118.3,39.13,117.2
+Asia,Cina,Hebei,Regione,Shijiazhuang,39.0,115.0,38.04,114.51
+Asia,Cina,Guangdong periferico,Regione,Shantou,24.3,116.1,23.35,116.68
+Asia,Cina,Sichuan,Regione,Nanchong,30.6,102.5,30.84,106.11
+Asia,Cina,Qilu,Regione,Jinan,36.0,116.4,36.65,117.12
+Asia,Cina,Jiaodong,Regione,Qingdao,36.9,120.6,36.07,120.38
+Asia,Cina,Shandong meridionale,Regione,Linyi,35.4,117.2,35.1,118.36
+Asia,Cina,Zhongyuan,Regione,Zhengzhou,35.3,114.6,34.75,113.63
+Asia,Cina,Henan meridionale,Regione,Nanyang,33.0,114.0,33.0,112.53
+Asia,Cina,Subei,Regione,Nanchino,33.6,119.0,32.06,118.8
+Asia,Cina,Jiangnan,Regione,Suzhou,31.5,119.6,31.3,120.58
+Asia,Cina,Zhejiang settentrionale,Regione,Hangzhou,29.4,120.3,30.27,120.16
+Asia,Cina,Zhejiang meridionale,Regione,Ningbo,28.8,120.8,29.87,121.55
+Asia,Cina,Hunan settentrionale,Regione,Changsha,28.6,111.6,28.23,112.94
+Asia,Cina,Hunan meridionale,Regione,Hengyang,26.5,111.5,26.89,112.57
+Asia,Cina,Anhui,Regione,Hefei,32.6,116.8,31.82,117.23
+Asia,Cina,Hubei,Regione,Wuhan,31.0,112.3,30.59,114.31
+Asia,Cina,Jiangxi,Regione,Nanchang,27.6,115.7,28.68,115.86
+Asia,Cina,Fujian,Regione,Fuzhou,26.1,118.0,26.07,119.3
+Asia,Cina,Guangxi,Regione,Nanning,23.8,108.8,22.82,108.32
+Asia,Cina,Yunnan,Regione,Kunming,25.0,101.5,24.88,102.83
+Asia,Cina,Guizhou,Regione,Guiyang,27.6,107.0,26.65,106.63
+Asia,Cina,Shaanxi,Regione,Xi'an,35.2,108.9,34.34,108.94
+Asia,Cina,Shanxi,Regione,Taiyuan,36.9,112.0,37.87,112.55
+Asia,Cina,Liaoning,Regione,Shenyang,41.3,122.6,41.8,123.43
+Asia,Cina,Manciuria,Regione,Harbin,46.5,127.5,45.8,126.53
+Asia,Cina,Mongolia Interna,Regione,Hohhot,43.5,113.0,40.84,111.75
+Asia,Cina,Xinjiang,Regione,Urumqi,41.1,85.2,43.83,87.62
+Asia,Cina,Altopiano tibetano,Regione,Lanzhou,33.5,92.0,36.06,103.83
+Asia,Indonesia,Giacarta,Capitale,Giacarta,-6.7,106.6,-6.21,106.85
+Asia,Indonesia,Giava Occidentale,Regione,Bandung,-7.3,108.4,-6.92,107.61
+Asia,Indonesia,Giava Centrale,Regione,Semarang,-7.4,109.6,-6.97,110.42
+Asia,Indonesia,Giava Orientale,Regione,Surabaya,-7.9,113.5,-7.25,112.75
+Asia,Indonesia,Sumatra,Regione,Medan,-0.5,101.5,3.6,98.67
+Asia,Indonesia,Nusantara,Regione,Makassar,-0.9,116.7,-5.15,119.43
+Asia,Indonesia,Indonesia orientale,Regione,Denpasar,-3.4,129.0,-8.65,115.22
+Asia,Pakistan,Islamabad,Capitale,Islamabad,34.4,71.9,33.69,73.05
+Asia,Pakistan,Lahore,Città,Lahore,32.4,73.9,31.55,74.34
+Asia,Pakistan,Karachi,Città,Karachi,25.0,68.0,24.86,67.01
+Asia,Pakistan,Punjab centrale,Regione,Faisalabad,32.0,72.3,31.42,73.08
+Asia,Pakistan,Punjab meridionale,Regione,Multan,29.3,71.9,30.2,71.47
+Asia,Pakistan,Belucistan,Regione,Quetta,28.0,66.5,30.18,66.99
+Asia,Giappone,Tokyo,Capitale,Tokyo,36.6,139.9,35.68,139.69
+Asia,Giappone,Kansai,Regione,Osaka,36.5,137.0,34.69,135.5
+Asia,Corea del Sud,Corea del Sud,Stato,Seul,36.3,127.8,37.57,126.98
+Asia,Corea del Nord,Corea del Nord,Stato,Pyongyang,40.3,127.4,39.04,125.76
+Asia,Taiwan,Taiwan,Stato,Taipei,23.7,121.0,25.03,121.57
+Asia,Uzbekistan,Uzbekistan,Stato,Tashkent,41.4,64.6,41.3,69.24
+Asia,Kazakistan,Kazakistan,Stato,Astana,48.0,67.0,51.17,71.43
+Asia,Tagikistan,Tagikistan,Stato,Dushanbe,38.9,71.0,38.56,68.77
+Asia,Azerbaigian,Azerbaigian,Stato,Baku,40.3,47.7,40.41,49.87
+Asia,Mongolia,Mongolia,Stato,Ulan Bator,46.8,103.0,47.89,106.91
+Asia,Bangladesh,Dhaka,Città,Dhaka,24.7,90.4,23.81,90.41
+Asia,Bangladesh,Chattogram,Regione,Chittagong,23.2,91.2,22.36,91.78
+Asia,Bangladesh,Varendra,Regione,Rajshahi,25.0,89.2,24.37,88.6
+Asia,Bangladesh,Sundarban,Regione,Khulna,22.5,90.4,22.85,89.54
+Asia,Filippine,Manila,Città,Manila,16.0,121.0,14.6,120.98
+Asia,Filippine,Visayas,Regione,Cebu,11.2,122.5,10.32,123.89
+Asia,Filippine,Mindanao,Regione,Davao,7.8,124.5,7.07,125.61
+Asia,Vietnam,Bac Bo,Regione,Hanoi,21.5,105.0,21.03,105.85
+Asia,Vietnam,Trung Bo,Regione,Da Nang,14.0,108.3,16.05,108.2
+Asia,Vietnam,Ho Chi Minh,Città,Ho Chi Minh,10.3,105.8,10.82,106.63
+Asia,Iran,Teheran,Città,Teheran,36.4,52.6,35.69,51.39
+Asia,Iran,Zagros,Regione,Tabriz,34.5,47.5,38.08,46.29
+Asia,Iran,Persia,Regione,Mashhad,31.5,56.5,36.3,59.61
+Asia,Turchia,Istanbul,Città,Istanbul,40.2,28.3,41.01,28.98
+Asia,Turchia,Anatolia occidentale,Regione,Ankara,38.5,31.5,39.93,32.86
+Asia,Turchia,Anatolia orientale,Regione,Gaziantep,39.0,39.5,37.07,37.38
+Asia,Siria,Siria,Stato,Damasco,35.0,38.0,33.51,36.29
+Asia,Giordania,Giordania,Stato,Amman,30.9,36.6,31.95,35.93
+Asia,Israele,Israele,Stato,Gerusalemme,30.9,34.8,31.78,35.22
+Asia,Thailandia,Bangkok,Città,Bangkok,12.5,99.7,13.76,100.5
+Asia,Thailandia,Isan,Regione,Chiang Mai,16.5,101.5,18.79,98.98
+Asia,Arabia Saudita,Arabia Saudita,Stato,Riad,24.0,45.0,24.71,46.68
+Asia,Emirati Arabi Uniti,Emirati Arabi Uniti,Stato,Abu Dhabi,23.6,54.3,24.45,54.38
+Asia,Myanmar,Myanmar,Stato,Naypyidaw,21.0,96.0,19.76,96.08
+Asia,Himalaya e Oceano,Shangri-La,Regione Internazionale,Kathmandu,28.4,84.1,27.72,85.32
+Asia,Iraq,Iraq,Stato,Baghdad,33.0,43.3,33.31,44.36
+Asia,Afghanistan,Afghanistan,Stato,Kabul,33.9,67.7,34.53,69.17
+Asia,Stretto di Malacca,Malaya,Regione Internazionale,Singapore,4.0,102.0,1.35,103.82
+Asia,Yemen,Yemen,Stato,Sana'a,15.6,47.5,15.37,44.19
+Asia,Valle del Mekong,Indocina,Regione Internazionale,Phnom Penh,13.5,105.0,11.56,104.93
+Africa,Nigeria,Lagos,Città,Lagos,7.6,4.2,6.52,3.38
+Africa,Nigeria,Hausaland,Regione,Kano,12.0,6.5,12.0,8.52
+Africa,Nigeria,Middle Belt,Regione,Abuja,10.0,10.5,9.06,7.5
+Africa,Nigeria,Igboland,Regione,Onitsha,6.3,7.7,6.14,6.79
+Africa,Nigeria,Delta del Niger,Regione,Port Harcourt,5.5,6.5,4.82,7.03
+Africa,Etiopia,Abissinia,Regione,Mekelle,12.0,39.0,13.5,39.47
+Africa,Etiopia,Oromia occidentale,Regione,Jimma,9.0,35.5,7.67,36.83
+Africa,Etiopia,Oromia orientale,Regione,Dire Dawa,7.0,42.5,9.59,41.86
+Africa,Etiopia,Etiopia meridionale,Regione,Addis Abeba,7.0,38.0,9.03,38.74
+Africa,Egitto,Il Cairo,Città,Il Cairo,29.6,30.6,30.04,31.24
+Africa,Egitto,Delta del Nilo,Regione,Alessandria,30.8,31.0,31.2,29.92
+Africa,Egitto,Alto Egitto,Regione,Asyut,25.5,30.0,27.18,31.18
+Africa,RD Congo,Kinshasa,Città,Kinshasa,-3.0,18.5,-4.32,15.31
+Africa,RD Congo,Kivu,Regione,Kisangani,0.0,27.5,0.52,25.19
+Africa,RD Congo,Katanga,Regione,Lubumbashi,-7.5,24.5,-11.66,27.48
+Africa,Tanzania,Costa Swahili,Regione,Dar es Salaam,-8.0,38.0,-6.79,39.21
+Africa,Tanzania,Tanganica,Regione,Mwanza,-5.0,33.5,-2.52,32.9
+Africa,Sudafrica,Johannesburg,Città,Johannesburg,-25.0,28.5,-26.2,28.05
+Africa,Sudafrica,Capo,Regione,Città del Capo,-31.0,23.5,-33.92,18.42
+Africa,Kenya,Kenya centrale,Regione,Nairobi,0.5,39.0,-1.29,36.82
+Africa,Kenya,Rift Valley,Regione,Nakuru,1.0,35.5,-0.3,36.07
+Africa,Sudan,Sudan,Stato,Khartoum,15.5,30.0,15.5,32.56
+Africa,Uganda,Uganda,Stato,Kampala,1.4,32.3,0.35,32.58
+Africa,Algeria,Algeria,Stato,Algeri,28.0,2.6,36.75,3.06
+Africa,Angola,Angola,Stato,Luanda,-12.3,17.5,-8.84,13.23
+Africa,Terre del Sahel,Sahel,Regione Internazionale,Bamako,15.0,-3.0,12.64,-8.0
+Africa,Fiumi del Sud,Senegambia,Regione Internazionale,Dakar,11.5,-12.5,14.69,-17.44
+Africa,Cuore Verde,Africa Equatoriale,Regione Internazionale,Yaoundé,3.0,15.5,3.87,11.52
+Africa,Costa d'Oro,Ashanti,Regione Internazionale,Accra,8.0,-0.5,5.6,-0.19
+Africa,Regno dell'Atlante,Mauretania,Regione Internazionale,Rabat,21.0,-11.0,34.02,-6.84
+Africa,Ansa del Niger,Songhai,Regione Internazionale,Niamey,14.0,6.0,13.51,2.11
+Africa,Rotte Carovaniere,Sahara,Regione Internazionale,Tunisi,24.0,17.0,36.81,10.18
+Africa,Mozambico,Mozambico,Stato,Maputo,-18.0,35.0,-25.97,32.57
+Africa,Valle dello Zambesi,Zambesia,Regione Internazionale,Harare,-19.0,29.8,-17.83,31.05
+Africa,Golfo delle Lagune,Eburnea,Regione Internazionale,Monrovia,7.5,-6.5,6.3,-10.8
+Africa,Corno d'Africa,Punt,Regione Internazionale,Mogadiscio,5.0,46.0,2.04,45.32
+Africa,Madagascar,Madagascar,Stato,Antananarivo,-19.0,46.5,-18.88,47.51
+Africa,Grandi Laghi,Ruanda-Urundi,Regione Internazionale,Kigali,-3.0,29.9,-1.95,30.06
+Africa,Delta dell'Okavango,Okavango,Regione Internazionale,Lusaka,-19.0,22.0,-15.39,28.32
+America del Nord,Stati Uniti,Washington,Capitale,Washington,38.3,-78.5,38.91,-77.04
+America del Nord,Stati Uniti,New York,Città,New York,42.5,-73.5,40.71,-74.01
+America del Nord,Stati Uniti,California,Regione,Los Angeles,37.2,-119.5,34.05,-118.24
+America del Nord,Stati Uniti,Texas,Regione,Dallas,31.5,-96.0,32.78,-96.8
+America del Nord,Stati Uniti,Sud-Est,Regione,Atlanta,30.9,-84.0,33.75,-84.39
+America del Nord,Stati Uniti,Midwest,Regione,Chicago,41.5,-85.5,41.88,-87.63
+America del Nord,Stati Uniti,Heartland,Regione,Minneapolis,40.5,-93.5,44.98,-93.27
+America del Nord,Stati Uniti,Far West,Regione,Phoenix,41.0,-113.0,33.45,-112.07
+America del Nord,Messico,Città del Messico,Città,Città del Messico,20.2,-98.6,19.43,-99.13
+America del Nord,Messico,Bajío,Regione,Guadalajara,21.5,-102.0,20.67,-103.35
+America del Nord,Messico,Messico settentrionale,Regione,Monterrey,28.5,-106.0,25.69,-100.32
+America del Nord,Messico,Messico meridionale,Regione,Mérida,17.5,-93.5,20.97,-89.62
+America del Nord,Canada,Canada,Stato,Ottawa,62.4,-96.5,45.42,-75.7
+America del Nord,Terra dei Maya,Maya,Regione Internazionale,Città del Guatemala,15.2,-88.8,14.63,-90.51
+America del Nord,Istmo e Grandi Antille,Caribe,Regione Internazionale,L'Avana,12.9,-85.2,23.11,-82.37
+America del Nord,Hispaniola e Piccole Antille,Hispaniola,Regione Internazionale,Santo Domingo,19.0,-71.0,18.49,-69.93
+America del Sud,Brasile,San Paolo,Città,San Paolo,-22.3,-48.7,-23.55,-46.63
+America del Sud,Brasile,Sudeste,Regione,Rio de Janeiro,-19.5,-44.5,-22.91,-43.17
+America del Sud,Brasile,Nordeste,Regione,Recife,-8.0,-41.5,-8.05,-34.88
+America del Sud,Brasile,Sul,Regione,Porto Alegre,-27.5,-52.0,-30.03,-51.23
+America del Sud,Brasile,Amazzonia,Regione,Brasília,-8.0,-55.0,-15.79,-47.88
+America del Sud,Perù,Perù,Stato,Lima,-9.2,-75.0,-12.05,-77.04
+America del Sud,Ecuador,Ecuador,Stato,Quito,-1.4,-78.4,-0.18,-78.47
+America del Sud,Bolivia,Bolivia,Stato,La Paz,-16.7,-64.7,-16.5,-68.15
+America del Sud,Colombia,Colombia,Stato,Bogotà,3.9,-73.1,4.71,-74.07
+America del Sud,Argentina,Argentina,Stato,Buenos Aires,-35.4,-65.2,-34.6,-58.38
+America del Sud,Cono Sud,Austral,Regione Internazionale,Santiago del Cile,-30.5,-71.0,-33.45,-70.67
+America del Sud,El Dorado,Bolivariana,Regione Internazionale,Caracas,6.0,-62.0,10.48,-66.9
+Oceania,Corona del Pacifico,Australasia,Regione Internazionale,Canberra,-25.0,134.0,-35.28,149.13
+Antartide,Lega Antartica,Porto Austro,Base Antartide,Porto Austro,-65.8,-63.0,-64.9,-63.6
+Antartide,Lega Antartica,Stazione Aurora,Base Antartide,Stazione Aurora,-67.3,125.5,-66.4,125.0
+Antartide,Lega Antartica,Cittadella Zenith,Base Antartide,Cittadella Zenith,-79.6,61.0,-80.5,60.0

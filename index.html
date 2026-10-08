@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="stage">
+<div class="app">
 <header class="topbar">
   <h1>Difesa Aerea 2049</h1>
   <div class="clock" id="clock">21 marzo 2049, 12:00</div>
@@ -34,14 +34,14 @@
       <span style="--c:var(--fighter)">Caccia</span>
       <span style="--c:var(--bomber)">Bombardiere</span>
       <span style="--c:var(--tactical)">Aereo tattico / addestramento</span>
-      <span class="hint">Spazio pausa · 1-7 velocità · T minaccia · I intercetta · B/A attacco · ? aiuto</span>
+      <button class="hint" data-action="help" title="Scorciatoie da tastiera e gradi">? Scorciatoie</button>
     </div>
   </div>
+  <aside class="area" id="pForces" aria-label="Minacce e velivoli"></aside>
+  <section class="area" id="pEco" aria-label="Economia"></section>
+  <section class="area" id="pSupport" aria-label="Supporto aereo"></section>
+  <section class="logdock" id="logbox"></section>
 </div>
-<main class="layout">
-  <aside id="panel"></aside>
-  <section class="logbox" id="logbox"></section>
-</main>
 <div class="modal" id="modal"><div class="card" id="modalCard"></div></div>
 <script src="land.js"></script>
 <script src="game.js"></script>

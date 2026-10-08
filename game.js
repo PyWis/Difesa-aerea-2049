@@ -344,6 +344,8 @@ const A = {
     addLog(`${p.id} decolla per l'addestramento a ${S.training.base.name}: arrivo tra ${fmtDur(dist(p, S.training.base) / p.speed * 60)}.`);
   },
   closeModal() { closeModal(); },
+  toggleLog() { logOpen = !logOpen; },
+  help() { helpModal(); },
   rescue(n) {
     n = +n; const b = S.bankrupt;
     if (!b || !(n > 0) || S.rep - n <= 0) return;
@@ -786,11 +788,15 @@ function readColors() {
   for (const k of ['ocean', 'land', 'coast', 'grid', 'ink', 'ink-soft', 'base', 'threat', 'fighter', 'bomber', 'tactical', 'panel']) colors[k] = cs.getPropertyValue('--' + k).trim();
 }
 function resize() {
-  const wrap = canvas.parentElement;
-  let cssW = wrap.clientWidth - parseFloat(getComputedStyle(wrap).paddingLeft) * 2;
-  // desktop: la mappa occupa metà altezza dello schermo (proporzione 2:1) e resta centrata sopra i comandi
+  const wrap = canvas.parentElement, cs = getComputedStyle(wrap);
+  const padX = parseFloat(cs.paddingLeft) * 2, padY = parseFloat(cs.paddingTop) * 2;
+  let cssW = wrap.clientWidth - padX;
+  // desktop: la mappa riempie l'area in alto a sinistra mantenendo la proporzione 2:1
   const desktop = window.matchMedia('(min-width: 901px)').matches;
-  if (desktop) cssW = Math.min(cssW, Math.max(560, window.innerHeight * 0.8));
+  if (desktop) {
+    const legend = wrap.querySelector('.legend'), lh = legend ? legend.offsetHeight + 8 : 0;
+    cssW = Math.max(300, Math.min(cssW, 2 * (wrap.clientHeight - padY - lh)));
+  }
   canvas.style.width = desktop ? cssW + 'px' : '';
   W = cssW; H = cssW / 2;
   const dpr = window.devicePixelRatio || 1;
@@ -1031,10 +1037,18 @@ canvas.addEventListener('click', e => {
 });
 
 // ---------- Pannello ----------
-const panel = document.getElementById('panel');
+const pForces = document.getElementById('pForces'), pEco = document.getElementById('pEco'), pSupport = document.getElementById('pSupport');
+const areas = [pForces, pEco, pSupport];
+let logOpen = false;
+// ogni area ha il suo scroll: si aggiorna il contenuto senza perdere la posizione
+function setAreas(forces, eco, support) {
+  for (const [el, html] of [[pForces, forces], [pEco, eco], [pSupport, support]]) {
+    const top = el.scrollTop; el.innerHTML = html; el.scrollTop = top;
+  }
+}
 let panelDirty = true;
 let pointerDown = false;
-panel.addEventListener('pointerdown', () => pointerDown = true);
+areas.forEach(a => a.addEventListener('pointerdown', () => pointerDown = true));
 window.addEventListener('pointerup', () => setTimeout(() => pointerDown = false, 0));
 function renderPanel(force) {
   renderTop();
@@ -1057,9 +1071,17 @@ function renderTop() {
     b.disabled = !S.base || S.over;
   });
 }
+// registro: barra in fondo allo schermo, nascosta finché non la apri
 function renderLog() {
-  document.getElementById('logbox').innerHTML = `<h2>Registro</h2>
-    <ul class="log">${S.log.map(l => `<li class="${l.kind}"><time>${fmtShort(l.t)}</time><span>${l.msg}</span></li>`).join('')}</ul>`;
+  const box = document.getElementById('logbox'), old = box.querySelector('.log'), top = old ? old.scrollTop : 0;
+  const last = S.log[0];
+  box.classList.toggle('open', logOpen);
+  box.innerHTML = `<button class="logtoggle" data-action="toggleLog" aria-expanded="${logOpen}">
+      <span class="logname">Registro <kbd>L</kbd></span>
+      <span class="logpreview ${last ? last.kind : ''}">${last ? `<time>${fmtShort(last.t)}</time> ${last.msg}` : ''}</span>
+      <span class="logarrow">${logOpen ? '▼' : '▲'}</span></button>
+    ${logOpen ? `<ul class="log">${S.log.map(l => `<li class="${l.kind}"><time>${fmtShort(l.t)}</time><span>${l.msg}</span></li>`).join('')}</ul>` : ''}`;
+  const ul = box.querySelector('.log'); if (ul) ul.scrollTop = top;
 }
 function planeStateText(p) {
   if (p.state === 'base') return 'Pronto alla base';
@@ -1184,14 +1206,15 @@ function renderPanelBody() {
   if (!S.base) {
     renderLog();
     const conts = new Set(S.sites.map(s => s.cont)).size;
-    panel.innerHTML = `<section class="block">
-      <h2>Scegli la base operativa</h2>
-      <p class="note">Hai ${CFG.startCredits} crediti e ${CFG.startRep}% di reputazione. Il tempo partirà da 21 marzo 2049, 12:00 appena scegli. Località proposte in ${conts} continenti.</p>
-    </section><section class="block"><ul class="sites">${S.sites.map((s, i) => `
+    setAreas(`<section class="block"><ul class="sites">${S.sites.map((s, i) => `
       <li class="${S.hoverSite === i ? 'hover' : ''}" data-hover="${i}">
         <div><div class="name">${s.name}</div><div class="meta">${s.zone}, ${s.state}, ${s.cont}</div></div>
         <button class="btn" data-action="pickBase" data-a="${i}">Stabilisci qui</button>
-      </li>`).join('')}</ul></section>`;
+      </li>`).join('')}</ul></section>`,
+      `<section class="block">
+      <h2>Scegli la base operativa</h2>
+      <p class="note">Hai ${CFG.startCredits} crediti e ${CFG.startRep}% di reputazione. Il tempo partirà da 21 marzo 2049, 12:00 appena scegli. Località proposte in ${conts} continenti: clicca sulla mappa o usa l'elenco.</p>
+    </section>`, '');
     return;
   }
 
@@ -1231,13 +1254,14 @@ function renderPanelBody() {
       </div></div>`;
   }).join('') || '<p class="empty">Nessuna minaccia segnalata. Attiva i ricognitori per scoprirne.</p>';
 
-  panel.innerHTML = `
+  const eco = `
   <section class="block">
     <h2>Base: ${S.base.name}</h2>
     ${rankBlock()}
     <p class="note">${S.base.zone}, ${S.base.state}, ${S.base.cont}. Minacce eliminate: ${S.kills}. Punti medaglia: ${S.medals} (al massimo 1 al giorno: ${CFG.medalChancePerPoint * 100}% di probabilità per ogni punto di reputazione che andrebbe oltre il 100%). La reputazione si recupera con i ricognitori e cala di ${CFG.repLossCooldown}% per ogni attacco portato a termine.</p>
   </section>
-  ${loanBlock()}
+  ${loanBlock()}`;
+  const forces = `
   <section class="block">
     <h2>Minacce <span class="count">${S.threats.length}</span></h2>
     ${threatRows}
@@ -1260,15 +1284,16 @@ function renderPanelBody() {
     ${maxOf('tactical') < 2 ? `<p class="note">Con ${CFG.tacticalBonusAtBombers} bombardieri si sblocca il secondo aereo tattico.</p>` : ''}
     ${strikers.map(p => planeCard(p, aut)).join('') || '<p class="empty">Nessun aereo d\'attacco. Servono per colpire le minacce che stanno attaccando una base.</p>'}
     <p class="note">Bombardiere ${TYPES.bomber.perHour} crediti/ora, aereo tattico ${TYPES.tactical.perHour} crediti/ora; entrambi ${TYPES.bomber.base}-${TYPES.bomber.top} km/h. Autonomia illimitata, ma dopo ogni missione devono rientrare alla base prima di ripartire. Le minacce entro ${CFG.huntRangeKm} km possono andargli incontro: senza scorta hanno solo il ${CFG.strikeDefense * 100}% di cavarsela. Se abbattuti: penale ${CFG.lossPenalty.bomber} (bombardiere) o ${CFG.lossPenalty.tactical} (tattico) e un giorno di ripristino. Ogni ${CFG.winsForUpgrade} missioni vinte ottengono un potenziamento istantaneo e gratuito al rientro; durante il potenziamento normale non possono decollare.</p>
-  </section>
+  </section>`;
+  const support = `
   <section class="block">
-    <h2>Supporto</h2>
+    <h2>Supporto aereo</h2>
     ${supportBlock('recon', 'Ricognitori', CFG.reconLevels, CFG.reconPerDay,
       `${CFG.reconPerDay} crediti al giorno ciascuno. Reputazione recuperata ogni giorno: ${CFG.reconLevels.filter(l => l).map(l => `${l} → +${CFG.reconRep[l]}`).join(', ')}, triplicata sotto il 50% di reputazione e raddoppiata tra 50% e 90%${repMult(S.rep) > 1 ? ` (ora ×${repMult(S.rep)})` : ''}. Ognuno segnala minacce a caso, in media una ogni ${CFG.reconSignalDays} giorni.${S.support.signals ? ` Segnalazioni finora: ${S.support.signals}.` : ''}`)}
     ${supportBlock('tanker', 'Rifornitori', CFG.tankerLevels, CFG.tankerPerDay,
       `${CFG.tankerPerDay} crediti al giorno ciascuno, +${CFG.tankerBonusH} h di autonomia ai caccia per ognuno. Autonomia per i prossimi decolli: ${aut.toFixed(0)} h; ridurli non toglie autonomia ai caccia già in volo. Ogni modifica blocca i livelli per 24 ore.${Object.keys(CFG.tankerRepLoss).map(k => ` Con ${k} attivi la reputazione cala di ${CFG.tankerRepLoss[k]} al giorno.`).join('')}`)}
-  </section>
-`;
+  </section>`;
+  setAreas(forces, eco, support);
   renderLog();
 }
 document.addEventListener('click', e => {
@@ -1280,7 +1305,7 @@ document.addEventListener('click', e => {
 document.getElementById('speeds').addEventListener('click', e => {
   const b = e.target.closest('button[data-speed]'); if (b && !b.disabled) { A.speed(b.dataset.speed); renderPanel(); }
 });
-panel.addEventListener('mouseover', e => {
+pForces.addEventListener('mouseover', e => {
   const li = e.target.closest('[data-hover]');
   if (S && !S.base) S.hoverSite = li ? +li.dataset.hover : null;
 });
@@ -1290,7 +1315,7 @@ const SPEED_KEYS = { 1: 0, 2: 1, 3: 60, 4: 120, 5: 300, 6: 900, 7: CFG.turboSpee
 function helpModal() {
   openModal(`<h2>Scorciatoie e gradi</h2>
     <p><kbd>Spazio</kbd> pausa / riprendi · <kbd>1</kbd>-<kbd>7</kbd> velocità (pausa, tempo reale, 1, 2, 5, 15 min/s, 1 ora/s)<br>
-    <kbd>T</kbd> minaccia successiva · <kbd>Esc</kbd> deseleziona · <kbd>I</kbd> intercetta la minaccia selezionata col caccia più veloce<br>
+    <kbd>L</kbd> apre/chiude il registro · <kbd>T</kbd> minaccia successiva · <kbd>Esc</kbd> deseleziona · <kbd>I</kbd> intercetta la minaccia selezionata col caccia più veloce<br>
     <kbd>B</kbd> bombardiere / <kbd>A</kbd> aereo tattico contro la minaccia selezionata a terra · <kbd>?</kbd> questo aiuto</p>
     <p>${RANKS.map(r => `<b>${r.name}</b> ${r.at}`).join(' · ')}</p>
     <button class="btn" data-action="closeModal">Chiudi</button>`);
@@ -1306,7 +1331,8 @@ document.addEventListener('keydown', e => {
     if (e.target.closest && e.target.closest('button')) return; // lo spazio attiva il pulsante col focus
     if (S.speed > 0) { S.prevSpeed = S.speed; A.speed(0); } else A.speed(S.prevSpeed > 0 && S.prevSpeed !== CFG.turboSpeed ? S.prevSpeed : 60);
   } else if (SPEED_KEYS[k] !== undefined) A.speed(SPEED_KEYS[k]);
-  else if (k === 'Escape') { S.selectedThreat = null; }
+  else if (k === 'l' || k === 'L') logOpen = !logOpen;
+  else if (k === 'Escape') { if (logOpen) logOpen = false; else S.selectedThreat = null; }
   else if (k === 't' || k === 'T') {
     const ids = S.threats.map(t => t.id);
     if (ids.length) S.selectedThreat = ids[(ids.indexOf(S.selectedThreat) + 1) % ids.length];
@@ -1350,6 +1376,7 @@ function frame(now) {
 }
 
 window.addEventListener('resize', () => { resize(); });
+if (window.ResizeObserver) new ResizeObserver(() => resize()).observe(document.getElementById('mapwrap'));
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColors);
 
 (async () => {

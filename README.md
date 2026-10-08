@@ -49,6 +49,18 @@ Si perde per **bancarotta** o con la **reputazione a 0%**.
 
 Tutti i parametri di bilanciamento sono in `CFG` in cima a `game.js`.
 
+## Interfaccia (desktop)
+
+Lo schermo non scorre: ogni area ha il suo scroll.
+
+- **In alto a sinistra:** la mappa, che occupa tutto lo spazio disponibile.
+- **In alto a destra:** minacce, caccia e attacco al suolo (bombardieri e aereo tattico).
+- **In basso a sinistra:** economia (grado, base, prestiti).
+- **In basso a destra:** supporto aereo (ricognitori e rifornitori).
+- **In fondo:** il registro è una barra compatta con l'ultimo messaggio; si apre con un clic o con `L`.
+
+Sotto i 900 px di larghezza tutto passa in un'unica colonna.
+
 ## La mappa
 
 - Le rotte dei velivoli sono **geodetiche** (archi di cerchio massimo), come il movimento reale, e attraversano correttamente l'antimeridiano.
@@ -63,6 +75,7 @@ Tutti i parametri di bilanciamento sono in `CFG` in cima a `game.js`.
 |-------|--------|
 | `Spazio` | pausa / riprendi |
 | `1`-`7` | velocità: pausa, tempo reale, 1, 2, 5, 15 min/s, 1 ora/s |
+| `L` | apre/chiude il registro |
 | `T` | seleziona la minaccia successiva |
 | `Esc` | deseleziona |
 | `I` | intercetta la minaccia selezionata con il caccia pronto più veloce |

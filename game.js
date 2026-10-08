@@ -42,7 +42,12 @@ const CFG = {
   strikeDefense: 0.2,       // probabilità che un bombardiere/tattico senza scorta abbatta chi lo attacca
   escortRangeKm: 1000,      // la scorta ingaggia minacce entro questa distanza dall'aereo scortato
   slotCost: { fighter: 5000, bomber: 10000 },  // posto aggiuntivo acquistabile
-  slotMax: { fighter: 15, bomber: 5 },
+  slotMax: { fighter: 12, bomber: 5 },
+  startFighters: 5,         // caccia già in hangar all'inizio della partita
+  patrolSize: 3,            // caccia necessari per formare una pattuglia
+  patrolJoinSpeed: 3,       // moltiplicatore di velocità dei caccia che raggiungono il capo pattuglia
+  patrolJoinKm: 25,         // distanza entro cui un caccia è unito alla pattuglia
+  patrolReturnSpeed: 2,     // moltiplicatore di velocità al rientro dopo la vittoria
   tacticalBonusAtBombers: 5, // con 5 bombardieri si sblocca il secondo aereo tattico
   killsForUpgrade: 3,       // abbattimenti di un caccia per un potenziamento istantaneo
   winsForUpgrade: 5,        // missioni vinte da bombardiere/tattico per un potenziamento istantaneo
@@ -176,9 +181,9 @@ function newGame() {
     credits: CFG.startCredits, rep: CFG.startRep, t: 0, speed: 0, base: null,
     sites: pickSites(worldRows),
     support: { recon: 0, tanker: 0, signals: 0, lock: { recon: 0, tanker: 0 } }, planes: [], threats: [], log: [], loans: [], emergency: [],
-    ids: { R: 0, C: 0, B: 0, A: 0, T: 0, M: 0, L: 0, E: 0 }, training: null, trainDone: 0,
+    ids: { P: 0, R: 0, C: 0, B: 0, A: 0, T: 0, M: 0, L: 0, E: 0 }, training: null, trainDone: 0,
     selectedThreat: null, hoverSite: null, over: false, prevSpeed: 900, turboLeft: 0,
-    kills: 0, medals: 0, slots: { fighter: TYPES.fighter.max, bomber: TYPES.bomber.max },
+    patrols: [], kills: 0, medals: 0, slots: { fighter: TYPES.fighter.max, bomber: TYPES.bomber.max },
   };
   closeModal();
   addLog('Scegli una base operativa tra le 10 località proposte.');
@@ -231,7 +236,7 @@ function maxOf(type) {
   return S.slots[type];
 }
 // velocità effettiva: motore sonico ×2, caccia salvato dalla difesa jet ×0,5
-const spd = p => p.speed * (S.t < (p.sonicUntil || 0) ? 2 : 1) * (p.damaged ? 0.5 : 1);
+const spd = p => p.speed * (S.t < (p.sonicUntil || 0) ? 2 : 1) * (p.damaged ? 0.5 : 1) * (p.joining ? CFG.patrolJoinSpeed : 1) * (p.fast ? CFG.patrolReturnSpeed : 1);
 const repMult = rep => (CFG.repRecovery.find(r => rep < r.below) || { mult: 1 }).mult;
 const findPlane = id => S.planes.find(p => p.id === id);
 const findThreat = id => S.threats.find(t => t.id === id);
@@ -243,6 +248,7 @@ const A = {
     S.base = s;
     S.speed = 60;
     addLog(`Base operativa stabilita a ${s.name} (${s.state}, ${s.cont}).`, 'good');
+    for (let i = 0; i < CFG.startFighters; i++) A.buy('fighter');
     renderPanel(true);
   },
   speed(v) {
@@ -299,6 +305,17 @@ const A = {
     f.state = 'flight'; f.target = th.id;
     addLog(`${f.id} decolla verso ${th.id} (${spd(f)} km/h, ${f.mode === 'lead' ? "rotta al punto d'incontro" : 'inseguimento diretto'}, autonomia ${autonomyH().toFixed(1)} h).`);
   },
+  // i caccia che inseguono la stessa minaccia si uniscono in pattuglia
+  patrol(threatId) {
+    const th = findThreat(threatId); if (!th || th.state === 'cooldown') return;
+    const c = chasers(th).sort((a, b) => dist(a, th) - dist(b, th));
+    if (c.length < CFG.patrolSize) return;
+    const m = c.slice(0, CFG.patrolSize), leader = m[0];
+    const pat = { id: 'P' + (++S.ids.P), leader: leader.id, members: m.map(f => f.id), target: th.id };
+    S.patrols.push(pat);
+    m.forEach(f => { f.patrolId = pat.id; f.joined = f === leader; f.joining = f !== leader; f.aim = null; });
+    addLog(`Pattuglia ${pat.id} su ${th.id}: ${m.slice(1).map(f => f.id).join(' e ')} raggiungono ${leader.id} a velocità ×${CFG.patrolJoinSpeed}. Al contatto, successo certo.`, 'good');
+  },
   // bombardiere o tattico contro una minaccia che sta attaccando una base
   strike(threatId, who) {
     const th = findThreat(threatId); if (!th || th.state !== 'cooldown') return;
@@ -312,7 +329,7 @@ const A = {
   },
   escort(fighterId, leaderId) {
     const f = findPlane(fighterId), l = findPlane(leaderId);
-    if (!f || f.type !== 'fighter' || f.damaged || !l || !isStrike(l) || !isAir(l)) return;
+    if (!f || f.type !== 'fighter' || f.damaged || f.fast || !l || !isStrike(l) || !isAir(l)) return;
     if (f.state === 'upgrading' || f.state === 'repair') return;
     if (f.state === 'base') launch(f);
     f.state = 'escort'; f.escort = l.id; f.engaged = null; f.target = null; f.aim = null;
@@ -328,7 +345,7 @@ const A = {
   closeModal() { closeModal(); },
   retarget(planeId, threatId) {
     const p = findPlane(planeId), th = findThreat(threatId);
-    if (!p || p.state !== 'rtb' || !th || isStrike(p) || p.damaged) return;
+    if (!p || p.state !== 'rtb' || !th || isStrike(p) || p.damaged || p.fast) return;
     if (isStrike(p) !== (th.state === 'cooldown')) return;
     p.state = 'flight'; p.target = threatId; p.aim = null;
     addLog(`${p.id} interrompe il rientro e punta su ${threatId}.`);
@@ -364,6 +381,7 @@ const A = {
 const readyOf = type => planesOf(type).filter(p => p.state === 'base').sort((a, b) => b.speed - a.speed);
 function launch(p) {
   p.trail = []; p.mission = null;
+  p.fast = false; p.joining = false; p.joined = false; p.patrolId = null;
   p.flightMin = 0; p.upgradeMin = 0; p.aim = null; p.engaged = null; p.escort = null; p.target = null;
   p.autH = autonomyH(); // autonomia del volo: può solo crescere se si aggiungono rifornitori
   if (p.gear === 'sonic') {
@@ -372,6 +390,21 @@ function launch(p) {
   }
   p.lat = S.base.lat; p.lon = S.base.lon;
 }
+const chasers = th => S.planes.filter(f => f.type === 'fighter' && f.state === 'flight' && f.target === th.id && !f.mission && !f.patrolId && !f.damaged);
+const patrolOf = p => p.patrolId && S.patrols.find(x => x.id === p.patrolId);
+function dissolvePatrol(pat, why) {
+  S.patrols = S.patrols.filter(x => x !== pat);
+  for (const id of pat.members) { const f = findPlane(id); if (f) { f.patrolId = null; f.joining = false; f.joined = false; } }
+  if (why) addLog(`Pattuglia ${pat.id} sciolta: ${why}.`, 'bad');
+}
+function validatePatrols() {
+  for (const pat of [...S.patrols]) {
+    const th = findThreat(pat.target), ms = pat.members.map(findPlane);
+    if (!th || th.state === 'cooldown') dissolvePatrol(pat, 'obiettivo non più colpibile');
+    else if (ms.some(f => !f || f.state !== 'flight' || f.target !== pat.target)) dissolvePatrol(pat, 'un caccia non è più in missione');
+  }
+}
+const patrolUnited = pat => pat.members.every(id => (findPlane(id) || {}).joined);
 function goHome(p) { p.state = 'rtb'; p.mission = null; p.target = null; p.escort = null; p.engaged = null; p.aim = null; }
 function removePlane(p, msg) {
   S.planes = S.planes.filter(x => x !== p);
@@ -538,6 +571,7 @@ function step(dt) {
   const hourly = flying.reduce((s, p) => s + TYPES[p.type].perHour, 0);
   if (hourly) spend(hourly * dt / 60, 'Costi di volo');
   const autNow = autonomyH();
+  validatePatrols();
   for (const p of [...S.planes]) {
     if (!S.planes.includes(p)) continue;
     const T = TYPES[p.type];
@@ -578,6 +612,13 @@ function step(dt) {
         if (S.over) return;
         continue;
       } else { moveTo(p, tr.base, pkm); continue; }
+    }
+    const pat = patrolOf(p);
+    if (pat && p.state === 'flight' && pat.leader !== p.id) {
+      const ld = findPlane(pat.leader);
+      if (p.joined || dist(p, ld) <= pkm) { p.lat = ld.lat; p.lon = ld.lon; p.heading = ld.heading; p.joined = true; p.joining = false; }
+      else { p.joining = true; moveTo(p, ld, pkm); }
+      continue;
     }
     if (p.state === 'flight' && p.type === 'fighter') {
       const th = findThreat(p.target);
@@ -627,7 +668,7 @@ function step(dt) {
     if (home <= pkm) {
       p.state = 'base'; p.lat = S.base.lat; p.lon = S.base.lon; p.flightMin = 0;
       addLog(`${p.id} è rientrato alla base${p.damaged ? ' ed è di nuovo impiegabile' : ''}.`);
-      p.damaged = false;
+      p.damaged = false; p.fast = false;
       applyBonus(p);
     } else moveTo(p, S.base, pkm);
   }
@@ -673,6 +714,16 @@ function chase(f, th, km, remaining) {
   }
   if (d <= km + CFG.interceptRadiusKm) {
     f.lat = th.lat; f.lon = th.lon;
+    const pat = patrolOf(f);
+    if (pat && pat.leader === f.id && patrolUnited(pat)) {
+      killThreat(th, `La pattuglia ${pat.id} (${pat.members.join(', ')}) ha abbattuto ${th.id} con successo certo!`);
+      earnWin(f);
+      const ms = pat.members.map(findPlane).filter(Boolean);
+      dissolvePatrol(pat);
+      for (const m of ms) { goHome(m); m.fast = true; m.lat = th.lat; m.lon = th.lon; }
+      addLog(`${ms.map(m => m.id).join(', ')} rientrano a velocità ×${CFG.patrolReturnSpeed}, ma non possono intercettare altro fino all'atterraggio.`, 'good');
+      return;
+    }
     if (Math.random() < winCh()) {
       killThreat(th, `${f.id} ha abbattuto ${th.id}!`);
       earnWin(f);
@@ -911,6 +962,8 @@ function draw(now) {
       else if (l && dist(p, l) > 30) line(p, l, c, [], 0.5);
       continue;
     }
+    const pat = patrolOf(p);
+    if (pat && pat.leader !== p.id) { const ld = findPlane(pat.leader); if (ld && !p.joined) line(p, ld, c, [2, 3], 0.9, 1.6); continue; }
     if (p.mission === 'train' && S.training) { line(p, S.training.base, c, [8, 4], 0.7); continue; }
     const th = findThreat(p.target);
     if (!th) continue;
@@ -1054,9 +1107,12 @@ function planeStateText(p) {
   if (p.state === 'base') return 'Pronto alla base';
   if (p.state === 'repair') return 'Abbattuto, in ripristino';
   if (p.state === 'upgrading') return `Potenziamento ${Math.floor(p.upgradeMin / DAY * 100)}%`;
+  if (p.state === 'rtb' && p.fast) return 'Rientro rapido dopo la pattuglia';
   if (p.state === 'rtb') return p.damaged ? 'Danneggiato, rientro a metà velocità' : 'In rientro';
   if (p.state === 'escort') return p.engaged ? `Scorta ${p.escort}, ingaggia ${p.engaged}` : `Scorta ${p.escort}`;
   if (p.mission === 'train' && S.training) return `Verso ${S.training.base.name} (addestramento), ${Math.round(dist(p, S.training.base))} km`;
+  const pt = patrolOf(p);
+  if (pt && p.state === 'flight') return pt.leader === p.id ? `Capo pattuglia ${pt.id} su ${p.target}` : p.joined ? `In pattuglia ${pt.id} con ${pt.leader}` : `Raggiunge ${pt.leader} (pattuglia ${pt.id}), ×${CFG.patrolJoinSpeed}`;
   const th = findThreat(p.target);
   if (isStrike(p)) return th ? `Verso ${th.attack ? th.attack.name.replace(' (la tua base)', '') : th.id}, ${Math.round(dist(p, th))} km` : 'In volo';
   return `Verso ${p.target}, ${Math.round(dist(p, th || p))} km`;
@@ -1124,10 +1180,10 @@ function planeCard(p, aut) {
     } else extra += `<div class="bar ${frac < 0.25 ? 'warn' : ''}"><i style="width:${frac * 100}%"></i></div><span class="note">Autonomia residua ${fmtDur(left)}</span>`;
     if (p.state === 'flight' || p.state === 'escort') actions = `<button class="btn ghost" data-action="recall" data-a="${p.id}">Richiama</button>`;
     else {
-      const opts = isStrike(p) || p.damaged ? [] : S.threats.filter(t => t.state !== 'cooldown').sort((a, b) => dist(p, a) - dist(p, b)).slice(0, 4);
+      const opts = isStrike(p) || p.damaged || p.fast ? [] : S.threats.filter(t => t.state !== 'cooldown').sort((a, b) => dist(p, a) - dist(p, b)).slice(0, 4);
       if (opts.length) extra += `<div class="retarget"><span class="note">Nuovo obiettivo:</span>${opts.map(t =>
         `<button class="btn danger" data-action="retarget" data-a="${p.id}" data-b="${t.id}">${t.id}, ${Math.round(dist(p, t))} km</button>`).join('')}</div>`;
-      if (p.type === 'fighter' && !p.damaged) for (const l of S.planes.filter(l => isStrike(l) && isAir(l)))
+      if (p.type === 'fighter' && !p.damaged && !p.fast) for (const l of S.planes.filter(l => isStrike(l) && isAir(l)))
         actions += `<button class="btn" data-action="escort" data-a="${p.id}" data-b="${l.id}">Scorta ${l.id}</button>`;
     }
   }
@@ -1137,7 +1193,7 @@ function planeCard(p, aut) {
     </div>`;
   return `<div class="plane ${p.state} t-${p.type}">
     <div class="plane-head"><span class="tag">${p.id}</span>
-      <span class="state">${planeStateText(p)}</span><span class="speed">${spd(p) !== p.speed && isAir(p) ? `${Math.round(spd(p))} km/h${p.damaged ? '' : ' (sonico)'}` : `${p.speed} km/h`}</span></div>
+      <span class="state">${planeStateText(p)}</span><span class="speed">${spd(p) !== p.speed && isAir(p) ? `${Math.round(spd(p))} km/h${p.damaged ? '' : p.fast ? ' (rientro rapido)' : p.joining ? ' (in raggiungimento)' : ' (sonico)'}` : `${p.speed} km/h`}</span></div>
     ${gearRow(p)}
     <span class="note">${winsText(p)}</span>
     ${extra}
@@ -1217,6 +1273,7 @@ function renderPanelBody() {
       <div class="info"><span class="state">${Math.round(dist(th, S.base))} km dalla base</span><br>${fmtCoord(th)}, rotta ${Math.round(th.bearing)}°<br>${status}${chasers.length ? `<br>Inseguita da ${chasers.join(', ')}` : ''}</div>
       <div class="actions">${selBtn}
         <button class="btn danger" data-action="intercept" data-a="${th.id}" ${readyF ? '' : 'disabled'}>Intercetta</button>
+        ${chasers(th).length >= CFG.patrolSize ? `<button class="btn" data-action="patrol" data-a="${th.id}" title="Due caccia raggiungono il più vicino a velocità ×${CFG.patrolJoinSpeed}; al contatto successo certo">Forma pattuglia</button>` : ''}
       </div></div>`;
   }).join('') || '<p class="empty">Nessuna minaccia segnalata. Attiva i ricognitori per scoprirne.</p>';
 

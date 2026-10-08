@@ -1193,7 +1193,7 @@ function loanBlock() {
   const emOpen = S.emergency.filter(l => l.left > 0);
   const avail = CFG.loanMax - recentLoans().length;
   const debt = open.reduce((s, l) => s + l.left * CFG.loanInstallment, 0);
-  return `<section class="block loan">
+  return `<section class="block loan ecocol">
     <h2>Prestito ONU <span class="count">${avail} di ${CFG.loanMax} disponibili</span></h2>
     <button class="btn ${S.credits < 300 ? '' : 'ghost'}" data-action="loan" ${avail ? '' : 'disabled'}>Chiedi ${CFG.loanAmount} crediti</button>
     <p class="note">Rimborso in ${CFG.loanInstallments} rate da ${CFG.loanInstallment} a mezzanotte, massimo ${CFG.loanMax} prestiti ogni ${CFG.loanWindowDays} giorni. Se i crediti vanno in negativo si attiva da solo un prestito fornitori di emergenza di ${CFG.emergencyAmount} crediti (${CFG.emergencyInstallments} rate da ${CFG.emergencyInstallment}), che non conta tra i prestiti ONU; se ne è già aperto uno, si usa un prestito ONU disponibile. Se anche questi finiscono puoi salvarti sacrificando reputazione: ${CFG.rescueCreditsPerRep} crediti per 1%.
@@ -1254,13 +1254,13 @@ function renderPanelBody() {
       </div></div>`;
   }).join('') || '<p class="empty">Nessuna minaccia segnalata. Attiva i ricognitori per scoprirne.</p>';
 
-  const eco = `
-  <section class="block">
+  const eco = `<div class="ecogrid">
+  <section class="block ecocol">
     <h2>Base: ${S.base.name}</h2>
     ${rankBlock()}
     <p class="note">${S.base.zone}, ${S.base.state}, ${S.base.cont}. Minacce eliminate: ${S.kills}. Punti medaglia: ${S.medals} (al massimo 1 al giorno: ${CFG.medalChancePerPoint * 100}% di probabilità per ogni punto di reputazione che andrebbe oltre il 100%). La reputazione si recupera con i ricognitori e cala di ${CFG.repLossCooldown}% per ogni attacco portato a termine.</p>
   </section>
-  ${loanBlock()}`;
+  ${loanBlock()}</div>`;
   const forces = `
   <section class="block">
     <h2>Minacce <span class="count">${S.threats.length}</span></h2>

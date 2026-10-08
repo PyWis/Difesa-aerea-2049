@@ -287,3 +287,13 @@ kbd { font-family: "Chakra Petch", monospace; font-size: 0.8em; border: 1px soli
 .legend button.hint { background: transparent; border: 1px solid var(--panel-line); color: var(--ink-soft); border-radius: 999px; padding: 0 10px; font-size: 0.8rem; }
 .legend button.hint:hover { color: var(--ink); }
 .legend button.hint::before { display: none; }
+
+/* economia: base e prestiti in due colonne separate */
+.ecogrid { display: grid; grid-template-columns: 1fr 1fr; height: 100%; }
+.ecocol { min-width: 0; }
+.ecocol + .ecocol { border-left: 1px solid var(--panel-line); }
+@media (min-width: 901px) {
+  #pEco { overflow: hidden; }
+  .ecocol { overflow-y: auto; min-height: 0; border-bottom: 0; }
+}
+@media (max-width: 900px) { .ecogrid { grid-template-columns: 1fr; height: auto; } .ecocol + .ecocol { border-left: 0; } }

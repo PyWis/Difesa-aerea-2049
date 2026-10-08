@@ -308,7 +308,7 @@ const A = {
   // i caccia che inseguono la stessa minaccia si uniscono in pattuglia
   patrol(threatId) {
     const th = findThreat(threatId); if (!th || th.state === 'cooldown') return;
-    const c = chasers(th).sort((a, b) => dist(a, th) - dist(b, th));
+    const c = chasersOf(th).sort((a, b) => dist(a, th) - dist(b, th));
     if (c.length < CFG.patrolSize) return;
     const m = c.slice(0, CFG.patrolSize), leader = m[0];
     const pat = { id: 'P' + (++S.ids.P), leader: leader.id, members: m.map(f => f.id), target: th.id };
@@ -390,7 +390,7 @@ function launch(p) {
   }
   p.lat = S.base.lat; p.lon = S.base.lon;
 }
-const chasers = th => S.planes.filter(f => f.type === 'fighter' && f.state === 'flight' && f.target === th.id && !f.mission && !f.patrolId && !f.damaged);
+const chasersOf = th => S.planes.filter(f => f.type === 'fighter' && f.state === 'flight' && f.target === th.id && !f.mission && !f.patrolId && !f.damaged);
 const patrolOf = p => p.patrolId && S.patrols.find(x => x.id === p.patrolId);
 function dissolvePatrol(pat, why) {
   S.patrols = S.patrols.filter(x => x !== pat);
@@ -1273,7 +1273,7 @@ function renderPanelBody() {
       <div class="info"><span class="state">${Math.round(dist(th, S.base))} km dalla base</span><br>${fmtCoord(th)}, rotta ${Math.round(th.bearing)}°<br>${status}${chasers.length ? `<br>Inseguita da ${chasers.join(', ')}` : ''}</div>
       <div class="actions">${selBtn}
         <button class="btn danger" data-action="intercept" data-a="${th.id}" ${readyF ? '' : 'disabled'}>Intercetta</button>
-        ${chasers(th).length >= CFG.patrolSize ? `<button class="btn" data-action="patrol" data-a="${th.id}" title="Due caccia raggiungono il più vicino a velocità ×${CFG.patrolJoinSpeed}; al contatto successo certo">Forma pattuglia</button>` : ''}
+        ${chasersOf(th).length >= CFG.patrolSize ? `<button class="btn" data-action="patrol" data-a="${th.id}" title="Due caccia raggiungono il più vicino a velocità ×${CFG.patrolJoinSpeed}; al contatto successo certo">Forma pattuglia</button>` : ''}
       </div></div>`;
   }).join('') || '<p class="empty">Nessuna minaccia segnalata. Attiva i ricognitori per scoprirne.</p>';
 

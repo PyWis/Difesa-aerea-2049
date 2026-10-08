@@ -245,3 +245,5 @@ kbd { font-family: "Chakra Petch", monospace; font-size: 0.8em; border: 1px soli
 .rankbox { margin: 6px 0 10px; }
 .rankbox .bar { margin: 4px 0; }
 .ok-text { color: var(--ok); display: block; margin-top: 4px; }
+.modal-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.modal-actions .btn { text-align: left; }

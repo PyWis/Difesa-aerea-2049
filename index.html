@@ -5,37 +5,45 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Difesa Aerea 2049</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&family=Chakra+Petch:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="topbar">
-  <h1>Difesa Aerea 2049</h1>
-  <div class="clock" id="clock">21 marzo 2049, 12:00</div>
-  <div class="credits" id="credits">2500<small>crediti</small></div>
-  <div class="rep" id="rep"></div>
-  <div class="speeds" id="speeds" role="group" aria-label="Velocità di gioco">
-    <button data-speed="0">Pausa</button>
-    <button data-speed="1">Tempo reale</button>
-    <button data-speed="60">1 min/s</button>
-    <button data-speed="120">2 min/s</button>
-    <button data-speed="300">5 min/s</button>
-    <button data-speed="900">15 min/s</button>
-    <button data-speed="3600" title="Si disattiva da sola dopo 5 ore di gioco">1 ora/s</button>
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="16" cy="16" r="7" fill="none" stroke="currentColor" stroke-width="1" opacity=".6"/><path d="M16 3v26M3 16h26" stroke="currentColor" stroke-width="1" opacity=".35"/><path d="M16 16 L26 8" stroke="var(--base)" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="16" r="2" fill="var(--base)"/></svg>
+    <div><h1>Difesa Aerea <b>2049</b></h1><span class="subtitle">Comando difesa planetaria</span></div>
   </div>
+  <div class="hud">
+    <div class="stat"><span class="label">Data e ora</span><div class="clock" id="clock">21 marzo 2049, 12:00</div></div>
+    <div class="stat"><span class="label">Crediti</span><div class="credits" id="credits">2500</div></div>
+    <div class="stat rep" id="rep"></div>
+  </div>
+  <div class="speeds" id="speeds" role="group" aria-label="Velocità di gioco">
+    <button data-speed="0" title="Pausa (1)" aria-label="Pausa">&#10074;&#10074;</button>
+    <button data-speed="1" title="Tempo reale (2)">1×</button>
+    <button data-speed="60" title="1 minuto di gioco al secondo (3)">1m</button>
+    <button data-speed="120" title="2 minuti di gioco al secondo (4)">2m</button>
+    <button data-speed="300" title="5 minuti di gioco al secondo (5)">5m</button>
+    <button data-speed="900" title="15 minuti di gioco al secondo (6)">15m</button>
+    <button data-speed="3600" title="1 ora di gioco al secondo, si disattiva da sola dopo 5 ore di gioco (7)">1h</button>
+  </div>
+  <button class="iconbtn" data-action="help" title="Aiuto e scorciatoie (?)" aria-label="Aiuto">?</button>
 </header>
 <main class="layout">
   <div class="mapwrap" id="mapwrap">
-    <canvas id="map" aria-label="Mappa del mondo"></canvas>
-    <div class="tooltip" id="tooltip"></div>
-    <div class="legend">
-      <span style="--c:var(--base)">Base operativa</span>
-      <span style="--c:var(--threat)">Minaccia</span>
-      <span style="--c:var(--fighter)">Caccia</span>
-      <span style="--c:var(--bomber)">Bombardiere</span>
-      <span style="--c:var(--tactical)">Aereo tattico / addestramento</span>
-      <span class="hint">Spazio pausa · 1-7 velocità · T minaccia · I intercetta · B/A attacco · ? aiuto</span>
+    <div class="mapframe">
+      <canvas id="map" aria-label="Mappa del mondo"></canvas>
+      <div class="tooltip" id="tooltip"></div>
+      <div class="legend">
+        <span style="--c:var(--base)">Base operativa</span>
+        <span style="--c:var(--threat)">Minaccia</span>
+        <span style="--c:var(--fighter)">Caccia</span>
+        <span style="--c:var(--bomber)">Bombardiere</span>
+        <span style="--c:var(--tactical)">Tattico / addestramento</span>
+      </div>
     </div>
+    <div class="hint"><kbd>Spazio</kbd> pausa <kbd>1</kbd>–<kbd>7</kbd> velocità <kbd>T</kbd> minaccia <kbd>I</kbd> intercetta <kbd>B</kbd>/<kbd>A</kbd> attacco <kbd>?</kbd> aiuto</div>
     <section class="logbox" id="logbox"></section>
   </div>
   <aside id="panel"></aside>

@@ -15,6 +15,8 @@
   --bomber: #7a4fc0;
   --tactical: #2e8a46;
   --ok: #2f8a4a;
+  --patrol: #d4a000;
+  --damaged: #7b8793;
   --btn: #142536;
   --btn-ink: #f2f6f9;
   --page: #e7eef3;
@@ -40,6 +42,8 @@
     --bomber: #c9a0ff;
     --tactical: #8fe39b;
     --ok: #6fd08a;
+    --patrol: #ffd23f;
+    --damaged: #9aa5b1;
     --btn: #dce7f0;
     --btn-ink: #0e2034;
     --page: #0a1828;
@@ -48,7 +52,7 @@
 :root[data-theme="dark"] {
   --ocean: #0b1b2d; --ocean-hi: #0f2740; --land: #1e3a55; --coast: #3c678c; --grid: rgba(160,200,235,0.08);
   --ink: #dce7f0; --ink-soft: #8ba3b8; --panel: #12263b; --panel-line: #24425f;
-  --base: #f0b23c; --threat: #ff6a52; --fighter: #5fd4e8; --recon: #b49cff; --bomber: #c9a0ff; --tactical: #8fe39b; --ok: #6fd08a;
+  --base: #f0b23c; --threat: #ff6a52; --fighter: #5fd4e8; --recon: #b49cff; --bomber: #c9a0ff; --tactical: #8fe39b; --ok: #6fd08a; --patrol: #ffd23f; --damaged: #9aa5b1;
   --btn: #dce7f0; --btn-ink: #0e2034; --page: #0a1828;
 }
 *, *::before, *::after { box-sizing: inherit; }
@@ -351,3 +355,7 @@ details.help .note { margin: 0; padding: 0 10px 10px; }
   .iconbtn { display: none; }
   .hint { display: none; }
 }
+
+.plane.patrol { --c: var(--patrol); }
+.plane.damaged { --c: var(--damaged); }
+.modes button[aria-pressed="true"] { background: var(--c, var(--fighter)); }

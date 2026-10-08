@@ -806,9 +806,11 @@ function gameOver(title, text) {
 const canvas = document.getElementById('map'), ctx = canvas.getContext('2d');
 const tooltip = document.getElementById('tooltip');
 let W = 0, H = 0, colors = {};
+// pattuglie in giallo, caccia danneggiati in rientro in grigio
+const planeColor = p => p.patrolId && p.state === 'flight' ? colors.patrol : p.damaged && p.state === 'rtb' ? colors.damaged : colors[TYPES[p.type].color];
 function readColors() {
   const cs = getComputedStyle(document.documentElement);
-  for (const k of ['ocean', 'ocean-hi', 'land', 'coast', 'grid', 'ink', 'ink-soft', 'base', 'threat', 'fighter', 'bomber', 'tactical', 'panel']) colors[k] = cs.getPropertyValue('--' + k).trim();
+  for (const k of ['ocean', 'ocean-hi', 'land', 'coast', 'grid', 'ink', 'ink-soft', 'base', 'threat', 'fighter', 'bomber', 'tactical', 'panel', 'patrol', 'damaged']) colors[k] = cs.getPropertyValue('--' + k).trim();
 }
 function resize() {
   const wrap = canvas.parentElement;
@@ -932,7 +934,7 @@ function draw(now) {
   // scie dietro agli aerei e alle minacce
   for (const o of [...S.threats, ...S.planes]) {
     if (!o.trail || o.trail.length < 1 || (o.type && !isAir(o)) || o.state === 'cooldown') continue;
-    const col = o.type ? colors[TYPES[o.type].color] : colors.threat;
+    const col = o.type ? planeColor(o) : colors.threat;
     strokePts([...o.trail, o], col, [], 0.28, 1.5);
   }
 
@@ -953,7 +955,7 @@ function draw(now) {
   // rotte degli aerei: sempre archi di cerchio massimo, come le traiettorie reali
   for (const p of S.planes) {
     if (!isAir(p)) continue;
-    const c = colors[TYPES[p.type].color];
+    const c = planeColor(p);
     if (p.state === 'rtb') { line(p, S.base, c, [4, 4], 0.45); continue; }
     if (p.state === 'escort') {
       const l = findPlane(p.escort);
@@ -1008,7 +1010,7 @@ function draw(now) {
   for (const p of S.planes) {
     if (!isAir(p)) continue;
     const [x, y] = px(p);
-    const c = colors[TYPES[p.type].color];
+    const c = planeColor(p);
     if (p.type === 'fighter') drawArrow(x, y, p.heading || 0, c, 7);
     else drawBomber(x, y, p.heading || 0, c, p.type === 'tactical');
     // scorta agganciata: scostata di qualche pixel
@@ -1191,7 +1193,7 @@ function planeCard(p, aut) {
       <button data-action="setMode" data-a="${p.id}" data-b="pursuit" aria-pressed="${p.mode === 'pursuit'}">Inseguimento</button>
       <button data-action="setMode" data-a="${p.id}" data-b="lead" aria-pressed="${p.mode === 'lead'}">Punto d'incontro</button>
     </div>`;
-  return `<div class="plane ${p.state} t-${p.type}">
+  return `<div class="plane ${p.state} t-${p.type}${p.patrolId && p.state === 'flight' ? ' patrol' : ''}${p.damaged && p.state === 'rtb' ? ' damaged' : ''}">
     <div class="plane-head"><span class="tag">${p.id}</span>
       <span class="state">${planeStateText(p)}</span><span class="speed">${spd(p) !== p.speed && isAir(p) ? `${Math.round(spd(p))} km/h${p.damaged ? '' : p.fast ? ' (rientro rapido)' : p.joining ? ' (in raggiungimento)' : ' (sonico)'}` : `${p.speed} km/h`}</span></div>
     ${gearRow(p)}

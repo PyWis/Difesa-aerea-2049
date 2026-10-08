@@ -30,7 +30,9 @@ Raggiungi **100 medaglie**. Le medaglie sono il tuo grado:
 
 Ogni grado raggiunto rende le minacce un po' più pericolose (+3% di velocità, −2% di probabilità di vittoria in combattimento, +1% di probabilità oraria di attacco, per ogni grado). I valori sono in `CFG` (`diffSpeed`, `diffWin`, `diffAttack`).
 
-Si perde per **bancarotta** (crediti negativi con i prestiti già usati) o con la **reputazione a 0%**.
+Si perde per **bancarotta** o con la **reputazione a 0%**.
+
+**Salvataggio dalla bancarotta:** quando i crediti diventano negativi e non restano prestiti disponibili, il gioco si ferma e ti propone di salvarti sacrificando reputazione: **100 crediti per ogni 1%** (opzione minima, oppure con 5% in più di margine). Puoi anche accettare la bancarotta. Se la reputazione non basta a coprire il debito, la partita finisce. Il tasso è in `CFG.rescueCreditsPerRep`.
 
 ### Come si ottengono le medaglie
 

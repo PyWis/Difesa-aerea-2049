@@ -21,6 +21,8 @@ const CFG = {
   diffSpeed: 0.03,          // per ogni grado: +3% velocità delle minacce
   diffWin: 0.02,            // per ogni grado: −2% probabilità di vittoria in combattimento
   diffAttack: 0.01,         // per ogni grado: +1% probabilità oraria di attacco
+  rescueCreditsPerRep: 100, // salvataggio dalla bancarotta: crediti ottenuti per ogni 1% di reputazione sacrificato
+  rescueBuffer: 5,          // opzione con margine: punti di reputazione in più rispetto al minimo
   repLossCooldown: 50,      // reputazione persa quando una minaccia completa l'attacco a una base
   reconPerDay: 50,          // crediti / giorno di gioco
   tankerPerDay: 20,         // crediti / giorno di gioco
@@ -176,7 +178,7 @@ function newGame() {
     credits: CFG.startCredits, rep: CFG.startRep, t: 0, speed: 0, base: null,
     sites: pickSites(worldRows),
     support: { recon: 0, tanker: 0, signals: 0, lock: { recon: 0, tanker: 0 } }, planes: [], threats: [], log: [], loans: [], emergency: [],
-    ids: { R: 0, C: 0, B: 0, A: 0, T: 0, M: 0, L: 0, E: 0 }, training: null, trainDone: 0,
+    ids: { R: 0, C: 0, B: 0, A: 0, T: 0, M: 0, L: 0, E: 0 }, training: null, trainDone: 0, bankrupt: null,
     selectedThreat: null, hoverSite: null, over: false, prevSpeed: 900, turboLeft: 0,
     kills: 0, medals: 0, slots: { fighter: TYPES.fighter.max, bomber: TYPES.bomber.max },
   };
@@ -195,7 +197,23 @@ function spend(amount, why) {
     if (!S.emergency.some(l => l.left > 0)) takeEmergency();
     else if (canLoan()) takeLoan(true);
   }
-  if (S.credits < 0 && !S.over) gameOver('Bancarotta', `I crediti sono finiti${why ? ' (' + why.toLowerCase() + ')' : ''}: il prestito di emergenza è ancora da restituire e non è possibile chiedere altri prestiti ONU.`);
+  // senza più prestiti disponibili: la partita si ferma e il giocatore può scegliere se salvarsi sacrificando reputazione
+  if (S.credits < 0 && !S.over && !S.bankrupt) S.bankrupt = { why, shown: false };
+}
+const bankruptText = why => `I crediti sono finiti${why ? ' (' + why.toLowerCase() + ')' : ''}: il prestito di emergenza è ancora da restituire e non è possibile chiedere altri prestiti ONU.`;
+function offerRescue() {
+  const b = S.bankrupt; b.shown = true;
+  b.resume = S.speed === CFG.turboSpeed ? S.prevSpeed : (S.speed || 60);
+  S.speed = 0;
+  const deficit = -S.credits, per = CFG.rescueCreditsPerRep;
+  const need = Math.ceil(deficit / per);
+  const opts = [need, need + CFG.rescueBuffer].filter(n => S.rep - n > 0);
+  if (!opts.length) { S.bankrupt = null; gameOver('Bancarotta', `${bankruptText(b.why)} Non hai abbastanza reputazione (${Math.round(S.rep)}%) per coprire il debito di ${Math.ceil(deficit)} crediti (${per} crediti per 1%).`); return; }
+  openModal(`<h2>Bancarotta</h2>
+    <p>${bankruptText(b.why)} Debito: <b>${Math.ceil(deficit)} crediti</b>.</p>
+    <p>Puoi salvarti chiedendo fondi al comando in cambio di reputazione: <b>${per} crediti per ogni 1%</b>. Ora hai il ${Math.round(S.rep)}% di reputazione.</p>
+    <div class="modal-actions">${opts.map((n, i) => `<button class="btn ${i ? 'ghost' : ''}" data-action="rescue" data-a="${n}">Sacrifica ${n}% → +${n * per} crediti${i ? ' (con margine)' : ''}, reputazione ${Math.round(S.rep)}% → ${Math.round(S.rep - n)}%</button>`).join('')}
+      <button class="btn danger" data-action="declineRescue">Accetta la bancarotta</button></div>`);
 }
 // ---------- Prestiti ONU ----------
 const recentLoans = () => S.loans.filter(l => S.t - l.takenAt < CFG.loanWindowDays * DAY);
@@ -326,6 +344,16 @@ const A = {
     addLog(`${p.id} decolla per l'addestramento a ${S.training.base.name}: arrivo tra ${fmtDur(dist(p, S.training.base) / p.speed * 60)}.`);
   },
   closeModal() { closeModal(); },
+  rescue(n) {
+    n = +n; const b = S.bankrupt;
+    if (!b || !(n > 0) || S.rep - n <= 0) return;
+    S.credits += n * CFG.rescueCreditsPerRep;
+    changeRep(-n);
+    addLog(`Salvataggio dalla bancarotta: reputazione −${n}%, +${n * CFG.rescueCreditsPerRep} crediti.`, 'bad');
+    S.bankrupt = null; closeModal(); S.speed = b.resume;
+    if (S.credits < 0) S.bankrupt = { why: b.why, shown: false };
+  },
+  declineRescue() { const b = S.bankrupt; S.bankrupt = null; gameOver('Bancarotta', bankruptText(b && b.why)); },
   retarget(planeId, threatId) {
     const p = findPlane(planeId), th = findThreat(threatId);
     if (!p || p.state !== 'rtb' || !th || isStrike(p) || p.damaged) return;
@@ -1143,7 +1171,7 @@ function loanBlock() {
   return `<section class="block loan">
     <h2>Prestito ONU <span class="count">${avail} di ${CFG.loanMax} disponibili</span></h2>
     <button class="btn ${S.credits < 300 ? '' : 'ghost'}" data-action="loan" ${avail ? '' : 'disabled'}>Chiedi ${CFG.loanAmount} crediti</button>
-    <p class="note">Rimborso in ${CFG.loanInstallments} rate da ${CFG.loanInstallment} a mezzanotte, massimo ${CFG.loanMax} prestiti ogni ${CFG.loanWindowDays} giorni. Se i crediti vanno in negativo si attiva da solo un prestito fornitori di emergenza di ${CFG.emergencyAmount} crediti (${CFG.emergencyInstallments} rate da ${CFG.emergencyInstallment}), che non conta tra i prestiti ONU; se ne è già aperto uno, si usa un prestito ONU disponibile.
+    <p class="note">Rimborso in ${CFG.loanInstallments} rate da ${CFG.loanInstallment} a mezzanotte, massimo ${CFG.loanMax} prestiti ogni ${CFG.loanWindowDays} giorni. Se i crediti vanno in negativo si attiva da solo un prestito fornitori di emergenza di ${CFG.emergencyAmount} crediti (${CFG.emergencyInstallments} rate da ${CFG.emergencyInstallment}), che non conta tra i prestiti ONU; se ne è già aperto uno, si usa un prestito ONU disponibile. Se anche questi finiscono puoi salvarti sacrificando reputazione: ${CFG.rescueCreditsPerRep} crediti per 1%.
     ${emOpen.length ? `<br><b>Emergenza: debito residuo ${emOpen.reduce((s, l) => s + l.left * CFG.emergencyInstallment, 0)} crediti</b> (${emOpen.map(l => `${l.id}: ${l.left} ${l.left === 1 ? 'rata' : 'rate'}`).join(', ')}).` : ''}
     ${open.length ? `<br><b>Debito residuo ${debt} crediti</b> (${open.map(l => `${l.id}: ${l.left} ${l.left === 1 ? 'rata' : 'rate'}`).join(', ')}).` : ''}
     ${avail ? '' : `<br>Prossimo prestito disponibile tra ${fmtDur(nextLoanIn())}.`}</p>
@@ -1267,7 +1295,7 @@ function helpModal() {
 document.addEventListener('keydown', e => {
   if (!S || e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
   const k = e.key;
-  if (modal.classList.contains('open')) { if (k === 'Escape' && !S.over) closeModal(); return; }
+  if (modal.classList.contains('open')) { if (k === 'Escape' && !S.over && !S.bankrupt) closeModal(); return; }
   if (k === '?' || k === 'h' || k === 'H') { helpModal(); return; }
   if (!S.base || S.over) return;
   let handled = true;
@@ -1300,7 +1328,7 @@ function frame(now) {
   const realDt = Math.min(2, (now - last) / 1000); last = now;
   if (S && S.base && !S.over && S.speed > 0) {
     let gameMin = realDt * S.speed / 60;
-    while (gameMin > 0 && !S.over) {
+    while (gameMin > 0 && !S.over && !S.bankrupt) {
       const d = Math.min(1, gameMin); step(d); gameMin -= d;
       if (S.speed === CFG.turboSpeed) {
         S.turboLeft -= d;
@@ -1313,6 +1341,7 @@ function frame(now) {
     }
     if (now - lastPanel > 250) { panelDirty = true; lastPanel = now; }
   }
+  if (S && S.bankrupt && !S.bankrupt.shown && !S.over) offerRescue();
   if (S) { draw(now); renderPanel(); }
   requestAnimationFrame(frame);
 }

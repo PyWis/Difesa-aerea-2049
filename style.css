@@ -257,16 +257,16 @@ kbd { font-family: "Chakra Petch", monospace; font-size: 0.8em; border: 1px soli
 @media (min-width: 901px) {
   html, body { height: 100%; overflow: hidden; }
   .app {
-    height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) 440px;
-    grid-template-rows: auto minmax(0, 1fr) minmax(0, 30vh) auto;
+    height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) 420px;
+    grid-template-rows: auto minmax(0, 1fr) clamp(120px, 17vh, 190px) auto;
     grid-template-areas: "top top" "map forces" "eco support" "log log";
   }
   .topbar { grid-area: top; }
   .mapwrap {
-    grid-area: map; position: relative; min-height: 0; overflow: hidden; padding: 10px 16px 6px;
+    grid-area: map; position: relative; min-height: 0; overflow: hidden; padding: 6px 10px 2px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
   }
-  .legend { margin-top: 6px; justify-content: center; }
+  .legend { margin-top: 4px; font-size: 0.78rem; justify-content: center; }
   .legend .hint { margin-left: 0; }
   #pForces { grid-area: forces; border-left: 1px solid var(--panel-line); }
   #pEco { grid-area: eco; border-top: 1px solid var(--panel-line); }

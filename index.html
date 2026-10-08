@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div class="stage">
 <header class="topbar">
   <h1>Difesa Aerea 2049</h1>
   <div class="clock" id="clock">21 marzo 2049, 12:00</div>
@@ -24,7 +25,6 @@
     <button data-speed="3600" title="Si disattiva da sola dopo 5 ore di gioco">1 ora/s</button>
   </div>
 </header>
-<main class="layout">
   <div class="mapwrap" id="mapwrap">
     <canvas id="map" aria-label="Mappa del mondo"></canvas>
     <div class="tooltip" id="tooltip"></div>
@@ -36,9 +36,11 @@
       <span style="--c:var(--tactical)">Aereo tattico / addestramento</span>
       <span class="hint">Spazio pausa · 1-7 velocità · T minaccia · I intercetta · B/A attacco · ? aiuto</span>
     </div>
-    <section class="logbox" id="logbox"></section>
   </div>
+</div>
+<main class="layout">
   <aside id="panel"></aside>
+  <section class="logbox" id="logbox"></section>
 </main>
 <div class="modal" id="modal"><div class="card" id="modalCard"></div></div>
 <script src="land.js"></script>

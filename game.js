@@ -44,8 +44,8 @@ const CFG = {
   strikeDefense: 0.2,       // probabilità che un bombardiere/tattico senza scorta abbatta chi lo attacca
   escortRangeKm: 1000,      // la scorta ingaggia minacce entro questa distanza dall'aereo scortato
   slotCost: { fighter: 5000, bomber: 10000 },  // posto aggiuntivo acquistabile
-  slotMax: { fighter: 15, bomber: 5 },
-  tacticalBonusAtBombers: 5, // con 5 bombardieri si sblocca il secondo aereo tattico
+  slotMax: { fighter: 10, bomber: 3 },
+  tacticalBonusAtBombers: 3, // con 3 bombardieri (il massimo) si sblocca il secondo aereo tattico
   killsForUpgrade: 3,       // abbattimenti di un caccia per un potenziamento istantaneo
   winsForUpgrade: 5,        // missioni vinte da bombardiere/tattico per un potenziamento istantaneo
   gear: {                   // dotazioni dei caccia: una sola per volta, si consumano all'uso
@@ -160,8 +160,8 @@ function pickSites(rows) {
 
 // ---------- Tipi di aereo da combattimento ----------
 const TYPES = {
-  fighter:  { label: 'Caccia',        prefix: 'C', max: 8, base: 1000, top: 2000, perHour: 5,  color: 'fighter' },
-  bomber:   { label: 'Bombardiere',   prefix: 'B', max: 3, base: 300,  top: 700,  perHour: 10, color: 'bomber' },
+  fighter:  { label: 'Caccia',        prefix: 'C', max: 5, base: 1000, top: 2000, perHour: 5,  color: 'fighter' },
+  bomber:   { label: 'Bombardiere',   prefix: 'B', max: 1, base: 300,  top: 700,  perHour: 10, color: 'bomber' },
   tactical: { label: 'Aereo tattico', prefix: 'A', max: 1, base: 300,  top: 700,  perHour: 15, color: 'tactical' },
 };
 const isStrike = p => p.type === 'bomber' || p.type === 'tactical';

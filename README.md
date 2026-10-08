@@ -42,7 +42,7 @@ Si perde per **bancarotta** o con la **reputazione a 0%**.
 ## Come si gioca
 
 1. Scegli la base operativa tra le 10 località proposte.
-2. Compra caccia, bombardieri e aerei tattici. Attiva i **ricognitori**, che segnalano le minacce a caso (e recuperano reputazione ogni giorno).
+2. Compra caccia, bombardieri e aerei tattici. Si parte con 5 posti caccia (fino a 10), 1 posto bombardiere (fino a 3) e 1 aereo tattico; con 3 bombardieri si sblocca il secondo aereo tattico. Attiva i **ricognitori**, che segnalano le minacce a caso (e recuperano reputazione ogni giorno).
 3. **Caccia:** intercettano le minacce in volo (autonomia limitata; i **rifornitori** la aumentano). Due modalità di rotta: *inseguimento diretto* oppure *punto d'incontro* (calcolato per anticipare la minaccia).
 4. **Minacce a terra:** quando una minaccia attacca una base resta lì 3-7 giorni. Solo **bombardiere** (+1000, −500 di ricostruzione) e **aereo tattico** (+2000) possono eliminarla. Se riparte, perdi 50% di reputazione.
 5. **Potenziamenti**, dotazioni dei caccia (difesa jet, missile fotonico, motore sonico), posti aggiuntivi, scorta ai bombardieri e prestiti ONU completano la gestione economica.

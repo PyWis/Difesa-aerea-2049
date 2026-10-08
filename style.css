@@ -80,9 +80,21 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--base); out
 .speeds button:last-child { border-right: 0; }
 .speeds button[aria-pressed="true"] { background: var(--btn); color: var(--btn-ink); }
 
-.layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; min-height: calc(100vh - 62px); }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+.stage { background: var(--page); }
+@media (min-width: 901px) {
+  /* mappa in alto sempre visibile, comandi in basso */
+  .stage { position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--panel-line); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12); }
+  .mapwrap { padding: 8px 16px 6px; }
+  .legend { justify-content: center; margin-top: 6px; }
+  .legend .hint { margin-left: 0; }
+  #panel { column-width: 340px; column-gap: 0; }
+  #panel section.block { break-inside: avoid; border-right: 1px solid var(--panel-line); }
+  .logbox { margin: 0; max-width: none; padding: 14px 18px; }
+  .log { max-height: 60vh; }
+}
 .mapwrap { position: relative; padding: 16px; }
-canvas#map { width: 100%; display: block; border-radius: 4px; cursor: crosshair; }
+canvas#map { width: 100%; display: block; border-radius: 4px; cursor: crosshair; margin: 0 auto; }
 .legend {
   display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; font-size: 0.85rem; color: var(--ink-soft);
 }
@@ -96,7 +108,7 @@ canvas#map { width: 100%; display: block; border-radius: 4px; cursor: crosshair;
 }
 
 aside {
-  border-left: 1px solid var(--panel-line); background: var(--panel); overflow-y: auto; max-height: calc(100vh - 62px);
+  background: var(--panel); border-top: 1px solid var(--panel-line);
 }
 section.block { padding: 14px 18px; border-bottom: 1px solid var(--panel-line); }
 section.block h2 {
@@ -158,7 +170,7 @@ section.block h2 button { margin-left: auto; }
 
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; }
-  aside { border-left: 0; border-top: 1px solid var(--panel-line); max-height: none; }
+  .logbox { padding: 14px 18px; }
   .topbar { padding: 10px 14px; }
   .mapwrap { padding: 10px; }
   .log { max-height: 150px; }

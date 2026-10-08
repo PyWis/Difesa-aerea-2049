@@ -787,7 +787,11 @@ function readColors() {
 }
 function resize() {
   const wrap = canvas.parentElement;
-  const cssW = wrap.clientWidth - parseFloat(getComputedStyle(wrap).paddingLeft) * 2;
+  let cssW = wrap.clientWidth - parseFloat(getComputedStyle(wrap).paddingLeft) * 2;
+  // desktop: la mappa occupa metà altezza dello schermo (proporzione 2:1) e resta centrata sopra i comandi
+  const desktop = window.matchMedia('(min-width: 901px)').matches;
+  if (desktop) cssW = Math.min(cssW, Math.max(560, window.innerHeight * 0.8));
+  canvas.style.width = desktop ? cssW + 'px' : '';
   W = cssW; H = cssW / 2;
   const dpr = window.devicePixelRatio || 1;
   canvas.width = W * dpr; canvas.height = H * dpr; canvas.style.height = H + 'px';
@@ -1015,8 +1019,7 @@ canvas.addEventListener('mousemove', e => {
   }
   if (html) {
     tooltip.innerHTML = html; tooltip.style.display = 'block';
-    const left = Math.min(x + 28, canvas.clientWidth - 200);
-    tooltip.style.left = left + 'px'; tooltip.style.top = (y + 28) + 'px';
+    tooltip.style.left = (canvas.offsetLeft + Math.min(x + 14, canvas.clientWidth - 200)) + 'px'; tooltip.style.top = (canvas.offsetTop + y + 14) + 'px';
   } else tooltip.style.display = 'none';
 });
 canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; if (!S.base) { S.hoverSite = null; panelDirty = true; } });

@@ -34,6 +34,8 @@ Si perde per **bancarotta** o con la **reputazione a 0%**.
 
 **Salvataggio dalla bancarotta:** quando i crediti diventano negativi e non restano prestiti disponibili, il gioco si ferma e ti propone di salvarti sacrificando reputazione: **100 crediti per ogni 1%** (opzione minima, oppure con 5% in più di margine). Puoi anche accettare la bancarotta. Se la reputazione non basta a coprire il debito, la partita finisce. Il tasso è in `CFG.rescueCreditsPerRep`.
 
+**Dichiarazione di emergenza (scheda Logistica):** opzione manuale, mai automatica. Dà **2000 crediti al giorno per 5 giorni** (il primo subito, gli altri a mezzanotte) e costa **10% di reputazione in totale** (2% a versamento). Si può chiedere con meno di 1000 crediti, una alla volta; quando i crediti finiscono il gioco si ferma e te la propone al posto della bancarotta. Valori in `CFG.declaration`.
+
 ### Come si ottengono le medaglie
 
 - **Reputazione extra:** ogni mezzanotte, i punti di reputazione che andrebbero oltre il 100% danno il 25% di probabilità di medaglia per punto (massimo una al giorno).

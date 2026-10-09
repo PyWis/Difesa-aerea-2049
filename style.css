@@ -17,6 +17,7 @@
   --ok: #2f8a4a;
   --patrol: #d4a000;
   --damaged: #7b8793;
+  --missile: #b3237a;
   --btn: #142536;
   --btn-ink: #f2f6f9;
   --page: #e7eef3;
@@ -44,6 +45,7 @@
     --ok: #6fd08a;
     --patrol: #ffd23f;
     --damaged: #9aa5b1;
+    --missile: #ff7ac8;
     --btn: #dce7f0;
     --btn-ink: #0e2034;
     --page: #0a1828;
@@ -52,7 +54,7 @@
 :root[data-theme="dark"] {
   --ocean: #0b1b2d; --ocean-hi: #0f2740; --land: #1e3a55; --coast: #3c678c; --grid: rgba(160,200,235,0.08);
   --ink: #dce7f0; --ink-soft: #8ba3b8; --panel: #12263b; --panel-line: #24425f;
-  --base: #f0b23c; --threat: #ff6a52; --fighter: #5fd4e8; --recon: #b49cff; --bomber: #c9a0ff; --tactical: #8fe39b; --ok: #6fd08a; --patrol: #ffd23f; --damaged: #9aa5b1;
+  --base: #f0b23c; --threat: #ff6a52; --fighter: #5fd4e8; --recon: #b49cff; --bomber: #c9a0ff; --tactical: #8fe39b; --ok: #6fd08a; --patrol: #ffd23f; --damaged: #9aa5b1; --missile: #ff7ac8;
   --btn: #dce7f0; --btn-ink: #0e2034; --page: #0a1828;
 }
 *, *::before, *::after { box-sizing: inherit; }
@@ -359,3 +361,14 @@ details.help .note { margin: 0; padding: 0 10px 10px; }
 .plane.patrol { --c: var(--patrol); }
 .plane.damaged { --c: var(--damaged); }
 .modes button[aria-pressed="true"] { background: var(--c, var(--fighter)); }
+
+/* basi secondarie e artefatti */
+.baseline { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 8px 0; border-top: 1px solid var(--panel-line); }
+.baseline:first-of-type { border-top: 0; }
+.baseline .btn { margin-left: auto; }
+.baseline.locked { opacity: .55; }
+.baseline.owned b::before { content: "✓ "; color: var(--ok); }
+.art { padding: 10px 0; border-top: 1px solid var(--panel-line); display: flex; flex-direction: column; gap: 3px; }
+.art:first-of-type { border-top: 0; }
+.art.on { border-left: 3px solid var(--ok); padding-left: 10px; }
+.art-head { display: flex; align-items: center; gap: 8px; justify-content: space-between; flex-wrap: wrap; }

@@ -50,6 +50,19 @@ Si perde per **bancarotta** o con la **reputazione a 0%**.
 
 Tutti i parametri di bilanciamento sono in `CFG` in cima a `game.js`.
 
+## Basi secondarie e artefatti (scheda *Basi*)
+
+Si acquistano in ordine; per ognuna si rifà la scelta tra 10 località casuali (il tempo si ferma durante la scelta, il costo è addebitato alla conferma). Aerei e hangar restano nella base operativa.
+
+| Base | Costo | Cosa dà |
+|------|------:|---------|
+| Ricerca (2ª) | 10.000 | Ricerca: +1-10% per minaccia abbattuta in volo, +12% per bombardamento, +20% per missione tattica (non di addestramento). Può superare il 100%. Artefatto *Ricerca* (+300%) |
+| Missilistica (3ª) | 25.000 | Missile ad antimateria, Missile quantico, Richiamo, Terremoto |
+| Addestramento (4ª) | 50.000 | Addestramento piloti, tecnico, volo, tattico |
+| Maggiore (5ª) | 100.000 | +10% reputazione all'acquisto, +1 medaglia al giorno con reputazione al 100%, artefatto Monumento Minaccia Ignota |
+
+Ogni attivazione di artefatto costa **2500 crediti e il 100% di ricerca**; lo stesso artefatto non si riattiva prima di 3 giorni. Durate non specificate: 3 giorni (piloti, tecnico, volo, monumento), 1 giorno (richiamo). I bersagli dell'addestramento volo compaiono entro 600 km dalla base operativa e svaniscono dopo 24 ore. Tutti i valori sono in `CFG` (`bases`, `art`, ...).
+
 ## Interfaccia (desktop)
 
 Lo schermo non scorre: ogni area ha il suo scroll.

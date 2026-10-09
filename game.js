@@ -95,6 +95,13 @@ const CFG = {
   },
   // dichiarazione di emergenza: solo su richiesta, mai automatica
   declaration: { days: 5, perDay: 2000, repPerDay: 10, maxCredits: 1000 },
+  // operazioni speciali (scheda Logistica)
+  ops: {
+    onu:       { label: 'Ricognitori ONU',        cost: 5000,  n: 50,  days: 3, repBonus: 10, medals: 1, cooldownDays: 7 },
+    coalition: { label: 'Ricognitori Coalizione', cost: 20000, n: 100, days: 1, repBonus: 10, medals: 1, cooldownDays: 7 },
+    fighters:  { label: 'Caccia-Ricognitori',     cost: 0,     n: 25,  days: 1, pauseH: 6,   cooldownDays: 1 },
+    tactical:  { label: 'Mappa Tattica',          cost: 0,     speedMult: 2, repNow: -10, repLater: 20, laterDays: 1 },
+  },
   majorRepBonus: 10,        // base maggiore: reputazione guadagnata all'acquisto
 };
 const R_EARTH = 6371;
@@ -212,7 +219,8 @@ function newGame() {
     ids: { P: 0, R: 0, C: 0, B: 0, A: 0, T: 0, M: 0, L: 0, E: 0, K: 0, D: 0 }, trainings: [], trainDone: 0,
     decl: null, askBankrupt: false,
     extra: [], research: 0, artAt: {}, missiles: [], pending: null,
-    fx: { recallUntil: 0, recallBase: null, pilotUntil: 0, pilotLeft: 0, techUntil: 0, flight: null, monumentUntil: 0 },
+    fx: { recallUntil: 0, recallBase: null, pilotUntil: 0, pilotLeft: 0, techUntil: 0, flight: null, monumentUntil: 0, repLater: [] },
+    ops: { at: {}, boosts: [], pauseUntil: 0 },
     selectedThreat: null, hoverSite: null, over: false, prevSpeed: 900, turboLeft: 0,
     patrols: [], kills: 0, medals: 0, slots: { fighter: TYPES.fighter.max, bomber: TYPES.bomber.max },
   };
@@ -440,6 +448,7 @@ const A = {
     addLog('Acquisto della base annullato.');
   },
   artifact(id) { activateArtifact(id); },
+  op(id) { activateOp(id); },
   declare() {
     if (S.decl || S.over) return;
     if (!S.askBankrupt && !canDeclare()) return;
@@ -561,6 +570,64 @@ function killThreat(th, msg, reward = CFG.killReward, groundResearch = 0) {
   addLog(`${msg} +${reward} crediti.${rg ? ` Ricerca +${rg}% (totale ${Math.round(S.research)}%).` : ''}`, 'good');
 }
 const airThreats = () => S.threats.filter(t => t.state !== 'cooldown' && !t.training);
+
+// ---------- Operazioni speciali (Logistica) ----------
+function addBoost(label, n, days) {
+  S.ops.boosts.push({ label, n, until: S.t + days * DAY });
+}
+const OPS = [
+  { id: 'onu', desc: o => `Attiva +${o.n} ricognitori per ${o.days} giorni. Vale +${o.repBonus}% di reputazione e ${o.medals} medaglia. Massimo 1 ogni ${o.cooldownDays} giorni.`,
+    run(o) {
+      addBoost(o.label, o.n, o.days);
+      addLog(`${o.label}: +${o.n} ricognitori per ${o.days} giorni. Reputazione +${o.repBonus}%, +${o.medals} medaglia.`, 'good');
+      changeRep(o.repBonus); addMedal(o.medals);
+    } },
+  { id: 'coalition', desc: o => `Attiva +${o.n} ricognitori per ${o.days} giorno. Vale +${o.repBonus}% di reputazione e ${o.medals} medaglia. Massimo 1 ogni ${o.cooldownDays} giorni.`,
+    run(o) {
+      addBoost(o.label, o.n, o.days);
+      addLog(`${o.label}: +${o.n} ricognitori per ${o.days} giorno. Reputazione +${o.repBonus}%, +${o.medals} medaglia.`, 'good');
+      changeRep(o.repBonus); addMedal(o.medals);
+    } },
+  { id: 'fighters', desc: o => `Caccia usati come ricognitori dalla base: +${o.n} ricognitori per ${o.days} giorno, ma i ricognitori normali restano in pausa ${o.pauseH} ore. Massimo 1 al giorno.`,
+    run(o) {
+      addBoost(o.label, o.n, o.days);
+      S.ops.pauseUntil = S.t + o.pauseH * 60;
+      addLog(`${o.label}: +${o.n} ricognitori per ${o.days} giorno; i ricognitori normali sono in pausa per ${o.pauseH} ore.`, 'good');
+    } },
+  { id: 'tactical', desc: o => `Una minaccia in volo a caso atterra alla base più vicina viaggiando a velocità ×${o.speedMult}: reputazione ${o.repNow}% subito, +${o.repLater}% dopo ${o.laterDays} giorno. Una alla volta.`,
+    can: () => S.t < S.fx.recallUntil ? 'Richiamo attivo' : !airThreats().length ? 'Nessuna minaccia in volo' : S.fx.repLater.some(r => r.tactical) ? 'Operazione già in corso' : '',
+    run(o) {
+      const pool = airThreats();
+      const th = pool[Math.floor(Math.random() * pool.length)];
+      const taken = new Set(S.threats.filter(x => x.attack).map(x => x.attack.key));
+      const key = BASES.map((b, i) => i).filter(i => !taken.has(i)).sort((a, b) => dist(th, BASES[a]) - dist(th, BASES[b]))[0];
+      if (key === undefined) return;
+      const tgt = BASES[key];
+      th.state = 'inbound'; th.prey = null; th.rush = true; th.course = (th.course || 0) + 1;
+      th.attack = { key, name: isOwnBase(tgt) ? `${tgt.name} (la tua base)` : tgt.name, lat: tgt.lat, lon: tgt.lon };
+      S.fx.repLater.push({ at: S.t + o.laterDays * DAY, rep: o.repLater, why: 'Mappa Tattica', tactical: true });
+      addLog(`Mappa Tattica: ${th.id} è diretta a velocità ×${o.speedMult} su ${th.attack.name} (${Math.round(dist(th, tgt))} km). Reputazione ${o.repNow}% subito, +${o.repLater}% tra ${o.laterDays} giorno.`, 'bad');
+      changeRep(o.repNow);
+    } },
+];
+function opState(def) {
+  const o = CFG.ops[def.id], at = S.ops.at[def.id];
+  const cd = at == null || !o.cooldownDays ? 0 : at + o.cooldownDays * DAY - S.t;
+  let why = '';
+  if (cd > 0) why = `Disponibile tra ${fmtDur(cd)}`;
+  else if (S.credits < o.cost) why = `Servono ${o.cost} crediti`;
+  else if (def.can) why = def.can();
+  return { why, cd, o };
+}
+function activateOp(id) {
+  const def = OPS.find(d => d.id === id);
+  if (!def || S.over || S.pending || S.askBankrupt) return;
+  const st = opState(def);
+  if (st.why) { addLog(`${st.o.label}: ${st.why.toLowerCase()}.`, 'bad'); return; }
+  if (st.o.cost) { spend(st.o.cost, st.o.label); if (S.over) return; }
+  S.ops.at[id] = S.t;
+  def.run(st.o);
+}
 
 // ---------- Artefatti ----------
 const ARTIFACTS = [
@@ -725,9 +792,18 @@ function step(dt) {
     if (S.over) return;
   }
 
+  for (const b of [...S.ops.boosts]) if (t1 >= b.until) { S.ops.boosts = S.ops.boosts.filter(x => x !== b); addLog(`${b.label}: i ${b.n} ricognitori aggiuntivi tornano alla base.`); }
+  if (S.ops.pauseUntil && t1 >= S.ops.pauseUntil) { S.ops.pauseUntil = 0; addLog('Pausa dei ricognitori terminata: tornano in servizio.'); }
+  for (const r of [...fx.repLater]) if (t1 >= r.at) {
+    fx.repLater = fx.repLater.filter(x => x !== r);
+    changeRep(r.rep);
+    addLog(`${r.why}: reputazione +${r.rep}%.`, 'good');
+  }
+
   // ricognitori: segnalazione casuale, in media una ogni N giorni di volo
   const pSignal = 1 - Math.exp(-dt / (CFG.reconSignalDays * DAY));
-  for (let i = 0; i < S.support.recon; i++) {
+  const nRecon = (S.t < S.ops.pauseUntil ? 0 : S.support.recon) + S.ops.boosts.reduce((a, b) => a + b.n, 0);
+  for (let i = 0; i < nRecon; i++) {
     if (Math.random() < pSignal) { S.support.signals++; spawnThreat('La ricognizione'); }
   }
 
@@ -743,7 +819,7 @@ function step(dt) {
 
   // minacce
   const hourCrossed = Math.floor(t1 / 60) > Math.floor(t0 / 60);
-  const km = thSpeed() * dt / 60;
+  const kmBase = thSpeed() * dt / 60;
   const recall = S.t < S.fx.recallUntil;
   for (const th of [...S.threats]) {
     if (!S.threats.includes(th)) continue;
@@ -752,6 +828,8 @@ function step(dt) {
       continue;
     }
     if (recall && th.state === 'inbound') { th.state = 'flight'; th.attack = null; th.course = (th.course || 0) + 1; }
+    if (th.rush && th.state !== 'inbound') th.rush = false;
+    const km = kmBase * (th.rush ? CFG.ops.tactical.speedMult : 1);
     if (th.state === 'cooldown') {
       if (S.t >= th.cooldownUntil) {
         th.state = 'flight'; th.flightStart = S.t; th.bearing = Math.random() * 360; th.course = (th.course || 0) + 1;
@@ -795,7 +873,7 @@ function step(dt) {
     if (th.state === 'inbound') {
       th.bearing = bearingTo(th, th.attack);
       if (dist(th, th.attack) <= km) {
-        th.lat = th.attack.lat; th.lon = th.attack.lon; th.state = 'cooldown';
+        th.lat = th.attack.lat; th.lon = th.attack.lon; th.state = 'cooldown'; th.rush = false;
         const days = CFG.cooldownMinDays + Math.random() * (CFG.cooldownMaxDays - CFG.cooldownMinDays);
         th.cooldownUntil = S.t + days * DAY;
         addLog(`${th.id} attacca ${th.attack.name}! Resterà lì ${fmtDur(days * DAY)}: solo bombardieri e aereo tattico possono colpirla.`, 'bad');
@@ -1020,7 +1098,7 @@ function ambush(th, prey) {
 }
 // primo punto lungo la rotta attuale della minaccia che il caccia può raggiungere prima di lei
 function solveIntercept(f, th, maxMin) {
-  const v = th.training ? 0 : thSpeed() / 60, u = spd(f) / 60;
+  const v = th.training ? 0 : thSpeed() * (th.rush ? CFG.ops.tactical.speedMult : 1) / 60, u = spd(f) / 60;
   const stop = th.state === 'inbound' ? dist(th, th.attack) : Infinity;
   const at = t => travel(th, th.bearing, Math.min(v * t, stop)).pos;
   const g = t => dist(f, at(t)) - u * t;
@@ -1515,13 +1593,24 @@ function loanBlock() {
   const emOpen = S.emergency.filter(l => l.left > 0);
   const avail = CFG.loanMax - recentLoans().length;
   const debt = open.reduce((s, l) => s + l.left * CFG.loanInstallment, 0);
+  const opCard = def => {
+    const st = opState(def), o = st.o;
+    const act = S.ops.boosts.filter(b => b.label === o.label).map(b => `<span class="note ok-text">Attivo: +${b.n} ricognitori, ancora ${fmtDur(b.until - S.t)}</span>`).join('')
+      + (def.id === 'fighters' && S.t < S.ops.pauseUntil ? `<span class="note warn-text">Ricognitori normali in pausa ancora ${fmtDur(S.ops.pauseUntil - S.t)}</span>` : '');
+    return `<div class="art${act ? ' on' : ''}">
+      <div class="art-head"><b>${o.label}</b><button class="btn ${st.why ? 'ghost' : ''}" data-action="op" data-a="${def.id}" ${st.why ? 'disabled' : ''}>Attiva${o.cost ? ` (${o.cost.toLocaleString('it-IT')} cr)` : ''}</button></div>
+      <span class="note">${def.desc(o)}</span>${act}
+      ${st.why ? `<span class="note warn-text">${st.why}</span>` : ''}
+    </div>`;
+  };
+  const opsBlock = `<section class="block"><h2>Operazioni speciali</h2>${OPS.map(opCard).join('')}</section>`;
   const dc = CFG.declaration;
   const declBlock = `<section class="block">
     <h2>Dichiarazione di emergenza ${S.decl ? `<span class="count">attiva, ${S.decl.left} versamenti</span>` : ''}</h2>
     <button class="btn ${S.credits < 300 ? '' : 'ghost'}" data-action="declare" ${canDeclare() ? '' : 'disabled'}>Dichiara l'emergenza</button>
     <p class="note">Ricevi ${dc.perDay} crediti al giorno per ${dc.days} giorni (il primo subito, poi a mezzanotte), al costo del ${dc.repPerDay}% di reputazione a ogni versamento (${dc.repPerDay * dc.days}% in totale). Non scatta mai da sola: è un'opzione per evitare la bancarotta, attivabile con meno di ${dc.maxCredits} crediti e una volta alla volta; quando i crediti finiscono ti verrà proposta.${S.decl ? `<br><b>In corso: ${S.decl.left} versamenti ancora da ricevere.</b>` : ''}</p>
   </section>`;
-  return declBlock + `<section class="block loan">
+  return opsBlock + declBlock + `<section class="block loan">
     <h2>Prestito ONU <span class="count">${avail} di ${CFG.loanMax} disponibili</span></h2>
     <button class="btn ${S.credits < 300 ? '' : 'ghost'}" data-action="loan" ${avail ? '' : 'disabled'}>Chiedi ${CFG.loanAmount} crediti</button>
     <p class="note">Rimborso in ${CFG.loanInstallments} rate da ${CFG.loanInstallment} a mezzanotte, massimo ${CFG.loanMax} prestiti ogni ${CFG.loanWindowDays} giorni. Se i crediti vanno in negativo si attiva da solo un prestito fornitori di emergenza di ${CFG.emergencyAmount} crediti (${CFG.emergencyInstallments} rate da ${CFG.emergencyInstallment}), che non conta tra i prestiti ONU; se ne è già aperto uno, si usa un prestito ONU disponibile.

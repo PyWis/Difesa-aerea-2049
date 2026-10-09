@@ -42,7 +42,7 @@ Si perde per **bancarotta** o con la **reputazione a 0%**.
 |------------|------:|---------|
 | Ricognitori ONU | 5000 | +50 ricognitori per 3 giorni, +10% reputazione, 1 medaglia (max 1 ogni 7 giorni) |
 | Ricognitori Coalizione | 20000 | +100 ricognitori per 1 giorno, +10% reputazione, 1 medaglia (max 1 ogni 7 giorni) |
-| Caccia-Ricognitori | gratis | +25 ricognitori per 1 giorno; i ricognitori normali restano in pausa 6 ore (max 1 al giorno) |
+| Caccia-Ricognitori | gratis | +25 ricognitori per 1 giorno; i caccia sono usati come ricognitori: quelli alla base e quelli che atterrano durante l'operazione restano fermi 6 ore (max 1 al giorno) |
 | Mappa Tattica | gratis | una minaccia in volo a caso atterra alla base libera più vicina a velocità ×2: −10% reputazione subito, +20% dopo 1 giorno (una alla volta) |
 
 I ricognitori aggiuntivi segnalano minacce come quelli normali (in media una ogni 3 giorni ciascuno), senza costo giornaliero. Valori in `CFG.ops`.

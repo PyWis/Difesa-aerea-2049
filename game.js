@@ -83,9 +83,9 @@ const CFG = {
   artifactCooldownDays: 3,  // lo stesso artefatto non si riattiva prima di 3 giorni
   art: {
     researchBoost: 300,     // ARTEFATTO RICERCA: % di ricerca aggiunta
-    missileSpeed: 4000, missileDays: 7, missileRadiusKm: 15,
+    missileSpeed: 4000, missileDays: 3, missileRadiusKm: 15,
     quantumKills: 2,
-    recallDays: 1,
+    recallHours: 8,
     quakeMinDays: 2, quakeMaxDays: 5,
     pilotDays: 3, pilotBonuses: 2,
     techDays: 3, techBonus: 300,
@@ -99,7 +99,7 @@ const CFG = {
   ops: {
     onu:       { label: 'Ricognitori ONU',        cost: 5000,  n: 50,  days: 3, repBonus: 10, medals: 1, cooldownDays: 7 },
     coalition: { label: 'Ricognitori Coalizione', cost: 20000, n: 100, days: 1, repBonus: 10, medals: 1, cooldownDays: 7 },
-    fighters:  { label: 'Caccia-Ricognitori',     cost: 0,     n: 25,  days: 1, pauseH: 6,   cooldownDays: 1 },
+    fighters:  { label: 'Caccia-Ricognitori',     cost: 0,     n: 25,  days: 1, holdH: 6,    cooldownDays: 1 },
     tactical:  { label: 'Mappa Tattica',          cost: 0,     speedMult: 2, repNow: -10, repLater: 20, laterDays: 1 },
   },
   majorRepBonus: 10,        // base maggiore: reputazione guadagnata all'acquisto
@@ -220,7 +220,7 @@ function newGame() {
     decl: null, askBankrupt: false,
     extra: [], research: 0, artAt: {}, missiles: [], pending: null,
     fx: { recallUntil: 0, recallBase: null, pilotUntil: 0, pilotLeft: 0, techUntil: 0, flight: null, monumentUntil: 0, repLater: [] },
-    ops: { at: {}, boosts: [], pauseUntil: 0 },
+    ops: { at: {}, boosts: [] },
     selectedThreat: null, hoverSite: null, over: false, prevSpeed: 900, turboLeft: 0,
     patrols: [], kills: 0, medals: 0, slots: { fighter: TYPES.fighter.max, bomber: TYPES.bomber.max },
   };
@@ -572,8 +572,13 @@ function killThreat(th, msg, reward = CFG.killReward, groundResearch = 0) {
 const airThreats = () => S.threats.filter(t => t.state !== 'cooldown' && !t.training);
 
 // ---------- Operazioni speciali (Logistica) ----------
-function addBoost(label, n, days) {
-  S.ops.boosts.push({ label, n, until: S.t + days * DAY });
+function addBoost(label, n, days, kind) {
+  S.ops.boosts.push({ label, n, kind, until: S.t + days * DAY });
+}
+// caccia usati come ricognitori: quando atterrano restano fermi alla base
+const fighterRecon = () => S.ops.boosts.some(b => b.kind === 'fighters');
+function holdFighter(p) {
+  p.state = 'repair'; p.hold = true; p.repairUntil = S.t + CFG.ops.fighters.holdH * 60;
 }
 const OPS = [
   { id: 'onu', desc: o => `Attiva +${o.n} ricognitori per ${o.days} giorni. Vale +${o.repBonus}% di reputazione e ${o.medals} medaglia. Massimo 1 ogni ${o.cooldownDays} giorni.`,
@@ -588,11 +593,12 @@ const OPS = [
       addLog(`${o.label}: +${o.n} ricognitori per ${o.days} giorno. Reputazione +${o.repBonus}%, +${o.medals} medaglia.`, 'good');
       changeRep(o.repBonus); addMedal(o.medals);
     } },
-  { id: 'fighters', desc: o => `Caccia usati come ricognitori dalla base: +${o.n} ricognitori per ${o.days} giorno, ma i ricognitori normali restano in pausa ${o.pauseH} ore. Massimo 1 al giorno.`,
+  { id: 'fighters', desc: o => `I caccia vengono usati come ricognitori: +${o.n} ricognitori per ${o.days} giorno. I caccia alla base e quelli che atterrano durante l'operazione restano fermi ${o.holdH} ore. Gratis, massimo 1 al giorno.`,
     run(o) {
-      addBoost(o.label, o.n, o.days);
-      S.ops.pauseUntil = S.t + o.pauseH * 60;
-      addLog(`${o.label}: +${o.n} ricognitori per ${o.days} giorno; i ricognitori normali sono in pausa per ${o.pauseH} ore.`, 'good');
+      addBoost(o.label, o.n, o.days, 'fighters');
+      const held = planesOf('fighter').filter(f => f.state === 'base');
+      held.forEach(holdFighter);
+      addLog(`${o.label}: +${o.n} ricognitori per ${o.days} giorno. ${held.length ? `${held.map(f => f.id).join(', ')} fermi alla base per ${o.holdH} ore; ` : ''}i caccia che atterrano durante l'operazione restano fermi ${o.holdH} ore.`, 'good');
     } },
   { id: 'tactical', desc: o => `Una minaccia in volo a caso atterra alla base più vicina viaggiando a velocità ×${o.speedMult}: reputazione ${o.repNow}% subito, +${o.repLater}% dopo ${o.laterDays} giorno. Una alla volta.`,
     can: () => S.t < S.fx.recallUntil ? 'Richiamo attivo' : !airThreats().length ? 'Nessuna minaccia in volo' : S.fx.repLater.some(r => r.tactical) ? 'Operazione già in corso' : '',
@@ -649,10 +655,10 @@ const ARTIFACTS = [
       for (const th of pool) killThreat(th, `Il missile quantico ha abbattuto ${th.id}.`);
     } },
   { id: 'recall', base: 'missile', name: 'Richiamo',
-    desc: `Per ${CFG.art.recallDays} giorno le minacce in volo non possono atterrare (attaccare una base) e si dirigono verso la base che ha attivato l'artefatto.`,
+    desc: `Per ${CFG.art.recallHours} ore le minacce in volo non possono atterrare (attaccare una base) e si dirigono verso la base che ha attivato l'artefatto.`,
     run() {
-      S.fx.recallUntil = S.t + CFG.art.recallDays * DAY; S.fx.recallBase = extraOf('missile').site;
-      addLog(`Richiamo attivo per ${CFG.art.recallDays} giorno: le minacce si dirigono verso ${S.fx.recallBase.name}.`, 'good');
+      S.fx.recallUntil = S.t + CFG.art.recallHours * 60; S.fx.recallBase = extraOf('missile').site;
+      addLog(`Richiamo attivo per ${CFG.art.recallHours} ore: le minacce si dirigono verso ${S.fx.recallBase.name}.`, 'good');
     } },
   { id: 'quake', base: 'missile', name: 'Terremoto', desc: `Aggiunge da ${CFG.art.quakeMinDays} a ${CFG.art.quakeMaxDays} giorni di attacco a tutte le basi attualmente attaccate: più tempo per bombardarle.`,
     can: () => S.threats.some(t => t.state === 'cooldown') ? '' : 'Nessuna base sotto attacco',
@@ -793,7 +799,6 @@ function step(dt) {
   }
 
   for (const b of [...S.ops.boosts]) if (t1 >= b.until) { S.ops.boosts = S.ops.boosts.filter(x => x !== b); addLog(`${b.label}: i ${b.n} ricognitori aggiuntivi tornano alla base.`); }
-  if (S.ops.pauseUntil && t1 >= S.ops.pauseUntil) { S.ops.pauseUntil = 0; addLog('Pausa dei ricognitori terminata: tornano in servizio.'); }
   for (const r of [...fx.repLater]) if (t1 >= r.at) {
     fx.repLater = fx.repLater.filter(x => x !== r);
     changeRep(r.rep);
@@ -802,7 +807,7 @@ function step(dt) {
 
   // ricognitori: segnalazione casuale, in media una ogni N giorni di volo
   const pSignal = 1 - Math.exp(-dt / (CFG.reconSignalDays * DAY));
-  const nRecon = (S.t < S.ops.pauseUntil ? 0 : S.support.recon) + S.ops.boosts.reduce((a, b) => a + b.n, 0);
+  const nRecon = S.support.recon + S.ops.boosts.reduce((a, b) => a + b.n, 0);
   for (let i = 0; i < nRecon; i++) {
     if (Math.random() < pSignal) { S.support.signals++; spawnThreat('La ricognizione'); }
   }
@@ -927,7 +932,7 @@ function step(dt) {
       continue;
     }
     if (p.state === 'repair') {
-      if (S.t >= p.repairUntil) { p.state = 'base'; addLog(`${p.id} è di nuovo disponibile alla base.`, 'good'); applyBonus(p); }
+      if (S.t >= p.repairUntil) { p.state = 'base'; p.hold = false; addLog(`${p.id} è di nuovo disponibile alla base.`, 'good'); applyBonus(p); }
       continue;
     }
     if (p.state === 'base') continue;
@@ -1012,6 +1017,7 @@ function step(dt) {
       addLog(`${p.id} è rientrato alla base${p.damaged ? ' ed è di nuovo impiegabile' : ''}.`);
       p.damaged = false; p.fast = false;
       applyBonus(p);
+      if (p.type === 'fighter' && fighterRecon()) { holdFighter(p); addLog(`${p.id}: usato come ricognitore, resta fermo alla base per ${CFG.ops.fighters.holdH} ore.`); }
     } else moveTo(p, S.base, pkm);
   }
 }
@@ -1479,7 +1485,7 @@ function renderLog() {
 }
 function planeStateText(p) {
   if (p.state === 'base') return 'Pronto alla base';
-  if (p.state === 'repair') return 'Abbattuto, in ripristino';
+  if (p.state === 'repair') return p.hold ? 'Fermo alla base (ricognizione)' : 'Abbattuto, in ripristino';
   if (p.state === 'upgrading') return `Potenziamento ${Math.floor(p.upgradeMin / DAY * 100)}%`;
   if (p.state === 'rtb' && p.fast) return 'Rientro rapido dopo la pattuglia';
   if (p.state === 'rtb') return p.damaged ? 'Danneggiato, rientro a metà velocità' : 'In rientro';
@@ -1516,7 +1522,7 @@ function planeCard(p, aut) {
   const sel = S.selectedThreat && findThreat(S.selectedThreat);
   const hunted = S.threats.filter(t => t.state === 'hunting' && t.prey === p.id).map(t => t.id);
   if (p.state === 'repair') {
-    const done = 1 - (p.repairUntil - S.t) / CFG.repairMin;
+    const done = 1 - (p.repairUntil - S.t) / (p.hold ? CFG.ops.fighters.holdH * 60 : CFG.repairMin);
     extra = `<div class="bar warn"><i style="width:${done * 100}%"></i></div><span class="note">Di nuovo disponibile tra ${fmtDur(p.repairUntil - S.t)}</span>`;
   } else if (p.state === 'base' || p.state === 'upgrading') {
     if (p.state === 'base' && p.speed < T.top) actions += `<button class="btn ghost" data-action="upgrade" data-a="${p.id}">Potenzia</button>`;
@@ -1596,7 +1602,7 @@ function loanBlock() {
   const opCard = def => {
     const st = opState(def), o = st.o;
     const act = S.ops.boosts.filter(b => b.label === o.label).map(b => `<span class="note ok-text">Attivo: +${b.n} ricognitori, ancora ${fmtDur(b.until - S.t)}</span>`).join('')
-      + (def.id === 'fighters' && S.t < S.ops.pauseUntil ? `<span class="note warn-text">Ricognitori normali in pausa ancora ${fmtDur(S.ops.pauseUntil - S.t)}</span>` : '');
+      ;
     return `<div class="art${act ? ' on' : ''}">
       <div class="art-head"><b>${o.label}</b><button class="btn ${st.why ? 'ghost' : ''}" data-action="op" data-a="${def.id}" ${st.why ? 'disabled' : ''}>Attiva${o.cost ? ` (${o.cost.toLocaleString('it-IT')} cr)` : ''}</button></div>
       <span class="note">${def.desc(o)}</span>${act}

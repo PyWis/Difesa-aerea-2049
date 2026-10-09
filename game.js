@@ -60,8 +60,8 @@ const CFG = {
   repairMin: 1440,          // bombardiere/tattico abbattuto: di nuovo disponibile dopo 1 giorno
   emergencyAmount: 2500,    // prestito fornitori di emergenza, automatico se i crediti vanno sotto zero
   emergencyInstallment: 800, emergencyInstallments: 4,
-  loanAmount: 500,          // prestito ONU
-  loanInstallment: 200,     // rata pagata a ogni mezzanotte
+  loanAmount: 5000,         // prestito ONU
+  loanInstallment: 2000,    // rata pagata a ogni mezzanotte
   loanInstallments: 3,      // numero di rate
   loanMax: 2, loanWindowDays: 7, // massimo 2 prestiti in 7 giorni
   sites: 10, minContinents: 4,
@@ -93,6 +93,8 @@ const CFG = {
     trainDays: 15,
     monumentDays: 3, monumentUp: 50, monumentDown: 20,
   },
+  // dichiarazione di emergenza: solo su richiesta, mai automatica
+  declaration: { days: 5, perDay: 2000, repPerDay: 10, maxCredits: 1000 },
   majorRepBonus: 10,        // base maggiore: reputazione guadagnata all'acquisto
 };
 const R_EARTH = 6371;
@@ -208,6 +210,7 @@ function newGame() {
     sites: pickSites(worldRows),
     support: { recon: 0, tanker: 0, signals: 0, lock: { recon: 0, tanker: 0 } }, planes: [], threats: [], log: [], loans: [], emergency: [],
     ids: { P: 0, R: 0, C: 0, B: 0, A: 0, T: 0, M: 0, L: 0, E: 0, K: 0, D: 0 }, trainings: [], trainDone: 0,
+    decl: null, askBankrupt: false,
     extra: [], research: 0, artAt: {}, missiles: [], pending: null,
     fx: { recallUntil: 0, recallBase: null, pilotUntil: 0, pilotLeft: 0, techUntil: 0, flight: null, monumentUntil: 0 },
     selectedThreat: null, hoverSite: null, over: false, prevSpeed: 900, turboLeft: 0,
@@ -228,7 +231,26 @@ function spend(amount, why) {
     if (!S.emergency.some(l => l.left > 0)) takeEmergency();
     else if (canLoan()) takeLoan(true);
   }
-  if (S.credits < 0 && !S.over) gameOver('Bancarotta', `I crediti sono finiti${why ? ' (' + why.toLowerCase() + ')' : ''}: il prestito di emergenza è ancora da restituire e non è possibile chiedere altri prestiti ONU.`);
+  if (S.credits < 0 && !S.over) {
+    if (S.decl) bankrupt(why);
+    else offerDeclaration(why);
+  }
+}
+function bankrupt(why) {
+  gameOver('Bancarotta', `I crediti sono finiti${why ? ' (' + why.toLowerCase() + ')' : ''}: il prestito di emergenza è ancora da restituire e non è possibile chiedere altri prestiti ONU.`);
+}
+// ---------- Dichiarazione di emergenza ----------
+// ogni versamento: +perDay crediti e −repPerDay di reputazione; la prima subito, le altre a mezzanotte
+const declStep = () => CFG.declaration.repPerDay;
+const canDeclare = () => !S.decl && !S.over && S.credits < CFG.declaration.maxCredits;
+function offerDeclaration(why) {
+  if (S.askBankrupt) return;
+  S.askBankrupt = true; S.resumeSpeedB = S.speed; S.speed = 0; S.bankruptWhy = why;
+  const d = CFG.declaration;
+  openModal(`<h2>Crediti esauriti</h2>
+    <p>Sei in bancarotta. Puoi dichiarare lo <b>stato di emergenza</b>: per ${d.days} giorni ricevi ${d.perDay} crediti al giorno (il primo subito, gli altri a mezzanotte), al costo del ${d.repPerDay}% di reputazione a ogni versamento (${d.repPerDay * d.days}% in totale). Se anche così i crediti restano negativi, la partita finisce.</p>
+    <button class="btn" data-action="declare">Dichiara l'emergenza</button>
+    <button class="btn ghost" data-action="acceptBankrupt">Accetta la bancarotta</button>`);
 }
 // ---------- Prestiti ONU ----------
 const recentLoans = () => S.loans.filter(l => S.t - l.takenAt < CFG.loanWindowDays * DAY);
@@ -257,6 +279,14 @@ function addMedal(n) {
   const after = rankIdx(S.medals);
   if (after > before) addLog(`Promozione! Nuovo grado: ${RANKS[after].name} (${S.medals} medaglie). Le minacce diventano più pericolose.`, 'good');
   if (S.medals >= MEDALS_GOAL && !S.over) victory();
+}
+function declPay() {
+  const d = CFG.declaration;
+  S.decl.left--;
+  S.credits += d.perDay;
+  addLog(`Emergenza: +${d.perDay} crediti, reputazione −${declStep()}%${S.decl.left ? `, ancora ${S.decl.left} ${S.decl.left === 1 ? 'versamento' : 'versamenti'}` : ', emergenza conclusa'}.`);
+  if (!S.decl.left) S.decl = null;
+  changeRep(-declStep());
 }
 const planesOf = type => S.planes.filter(p => p.type === type);
 // ---------- Basi secondarie e ricerca ----------
@@ -410,6 +440,18 @@ const A = {
     addLog('Acquisto della base annullato.');
   },
   artifact(id) { activateArtifact(id); },
+  declare() {
+    if (S.decl || S.over) return;
+    if (!S.askBankrupt && !canDeclare()) return;
+    const d = CFG.declaration, wasAsked = S.askBankrupt;
+    S.decl = { left: d.days };
+    S.askBankrupt = false; closeModal();
+    if (wasAsked) S.speed = S.resumeSpeedB || 0;
+    addLog(`Dichiarazione di emergenza: ${d.days} versamenti da ${d.perDay} crediti, reputazione −${d.repPerDay}% a versamento (${d.repPerDay * d.days}% in totale).`, 'bad');
+    declPay();
+    if (!S.over && S.credits < 0) bankrupt(S.bankruptWhy);
+  },
+  acceptBankrupt() { S.askBankrupt = false; bankrupt(S.bankruptWhy); },
   pilotBonus(planeId) {
     const p = findPlane(planeId);
     if (!p || p.type !== 'fighter' || S.t >= S.fx.pilotUntil || S.fx.pilotLeft <= 0 || p.state === 'upgrading' || p.state === 'repair' || p.speed >= TYPES.fighter.top) return;
@@ -643,6 +685,7 @@ function step(dt) {
       spend(CFG.emergencyInstallment, 'Rata prestito di emergenza');
       if (S.over) return;
     }
+    if (S.decl) { declPay(); if (S.over) return; }
     const before = S.rep;
     const baseGain = CFG.reconRep[S.support.recon] || 0, loss = CFG.tankerRepLoss[S.support.tanker] || 0;
     const mult = repMult(before), gain = baseGain * mult;
@@ -1472,7 +1515,13 @@ function loanBlock() {
   const emOpen = S.emergency.filter(l => l.left > 0);
   const avail = CFG.loanMax - recentLoans().length;
   const debt = open.reduce((s, l) => s + l.left * CFG.loanInstallment, 0);
-  return `<section class="block loan">
+  const dc = CFG.declaration;
+  const declBlock = `<section class="block">
+    <h2>Dichiarazione di emergenza ${S.decl ? `<span class="count">attiva, ${S.decl.left} versamenti</span>` : ''}</h2>
+    <button class="btn ${S.credits < 300 ? '' : 'ghost'}" data-action="declare" ${canDeclare() ? '' : 'disabled'}>Dichiara l'emergenza</button>
+    <p class="note">Ricevi ${dc.perDay} crediti al giorno per ${dc.days} giorni (il primo subito, poi a mezzanotte), al costo del ${dc.repPerDay}% di reputazione a ogni versamento (${dc.repPerDay * dc.days}% in totale). Non scatta mai da sola: è un'opzione per evitare la bancarotta, attivabile con meno di ${dc.maxCredits} crediti e una volta alla volta; quando i crediti finiscono ti verrà proposta.${S.decl ? `<br><b>In corso: ${S.decl.left} versamenti ancora da ricevere.</b>` : ''}</p>
+  </section>`;
+  return declBlock + `<section class="block loan">
     <h2>Prestito ONU <span class="count">${avail} di ${CFG.loanMax} disponibili</span></h2>
     <button class="btn ${S.credits < 300 ? '' : 'ghost'}" data-action="loan" ${avail ? '' : 'disabled'}>Chiedi ${CFG.loanAmount} crediti</button>
     <p class="note">Rimborso in ${CFG.loanInstallments} rate da ${CFG.loanInstallment} a mezzanotte, massimo ${CFG.loanMax} prestiti ogni ${CFG.loanWindowDays} giorni. Se i crediti vanno in negativo si attiva da solo un prestito fornitori di emergenza di ${CFG.emergencyAmount} crediti (${CFG.emergencyInstallments} rate da ${CFG.emergencyInstallment}), che non conta tra i prestiti ONU; se ne è già aperto uno, si usa un prestito ONU disponibile.
@@ -1665,7 +1714,7 @@ function helpModal() {
 document.addEventListener('keydown', e => {
   if (!S || e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
   const k = e.key;
-  if (modal.classList.contains('open')) { if (k === 'Escape' && !S.over) closeModal(); return; }
+  if (modal.classList.contains('open')) { if (k === 'Escape' && !S.over && !S.askBankrupt) closeModal(); return; }
   if (k === '?' || k === 'h' || k === 'H') { helpModal(); return; }
   if (!S.base || S.over || S.pending) return;
   let handled = true;
@@ -1698,7 +1747,7 @@ function frame(now) {
   const realDt = Math.min(2, (now - last) / 1000); last = now;
   if (S && S.base && !S.over && S.speed > 0) {
     let gameMin = realDt * S.speed / 60;
-    while (gameMin > 0 && !S.over) {
+    while (gameMin > 0 && !S.over && S.speed > 0) {
       const d = Math.min(1, gameMin); step(d); gameMin -= d;
       if (S.speed === CFG.turboSpeed) {
         S.turboLeft -= d;

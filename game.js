@@ -68,6 +68,32 @@ const CFG = {
   turboSpeed: 3600,         // 1 ora di gioco al secondo
   turboMaxMin: 300,         // si disattiva da sola dopo 5 ore di gioco
   leadRecalcMin: 15,        // ricalcolo del punto d'incontro (minuti di gioco)
+  // basi secondarie: si acquistano in ordine, ognuna con una nuova scelta tra 10 località casuali
+  bases: [
+    { kind: 'research', label: 'Base ricerca',          cost: 10000,  short: 'seconda base' },
+    { kind: 'missile',  label: 'Base missilistica',     cost: 25000,  short: 'terza base' },
+    { kind: 'training', label: 'Base di addestramento', cost: 50000,  short: 'quarta base' },
+    { kind: 'major',    label: 'Base maggiore',         cost: 100000, short: 'quinta base' },
+  ],
+  researchKill: [1, 10],    // % di ricerca per ogni minaccia abbattuta in volo (casuale)
+  researchBomb: 12,         // % per ogni bombardamento
+  researchTactical: 20,     // % per ogni missione tattica (non di addestramento)
+  artifactCost: 2500,       // crediti per attivare un artefatto
+  artifactResearch: 100,    // % di ricerca consumata da ogni attivazione
+  artifactCooldownDays: 3,  // lo stesso artefatto non si riattiva prima di 3 giorni
+  art: {
+    researchBoost: 300,     // ARTEFATTO RICERCA: % di ricerca aggiunta
+    missileSpeed: 4000, missileDays: 7, missileRadiusKm: 15,
+    quantumKills: 2,
+    recallDays: 1,
+    quakeMinDays: 2, quakeMaxDays: 5,
+    pilotDays: 3, pilotBonuses: 2,
+    techDays: 3, techBonus: 300,
+    flightDays: 3, flightEveryH: 3, flightRadiusKm: 600, flightLifeH: 24,
+    trainDays: 15,
+    monumentDays: 3, monumentUp: 50, monumentDown: 20,
+  },
+  majorRepBonus: 10,        // base maggiore: reputazione guadagnata all'acquisto
 };
 const R_EARTH = 6371;
 // Gradi: si sale con le medaglie; a 100 il gioco è vinto. Ogni grado rende le minacce un po' più pericolose.
@@ -181,7 +207,9 @@ function newGame() {
     credits: CFG.startCredits, rep: CFG.startRep, t: 0, speed: 0, base: null,
     sites: pickSites(worldRows),
     support: { recon: 0, tanker: 0, signals: 0, lock: { recon: 0, tanker: 0 } }, planes: [], threats: [], log: [], loans: [], emergency: [],
-    ids: { P: 0, R: 0, C: 0, B: 0, A: 0, T: 0, M: 0, L: 0, E: 0 }, training: null, trainDone: 0,
+    ids: { P: 0, R: 0, C: 0, B: 0, A: 0, T: 0, M: 0, L: 0, E: 0, K: 0, D: 0 }, trainings: [], trainDone: 0,
+    extra: [], research: 0, artAt: {}, missiles: [], pending: null,
+    fx: { recallUntil: 0, recallBase: null, pilotUntil: 0, pilotLeft: 0, techUntil: 0, flight: null, monumentUntil: 0 },
     selectedThreat: null, hoverSite: null, over: false, prevSpeed: 900, turboLeft: 0,
     patrols: [], kills: 0, medals: 0, slots: { fighter: TYPES.fighter.max, bomber: TYPES.bomber.max },
   };
@@ -231,12 +259,23 @@ function addMedal(n) {
   if (S.medals >= MEDALS_GOAL && !S.over) victory();
 }
 const planesOf = type => S.planes.filter(p => p.type === type);
+// ---------- Basi secondarie e ricerca ----------
+const extraOf = kind => S.extra.find(b => b.kind === kind);
+const isOwnBase = b => dist(b, S.base) < 1 || S.extra.some(x => dist(b, x.site) < 1);
+const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+function addResearch(n) {
+  if (!extraOf('research') || n <= 0) return 0;
+  S.research += n;
+  return n;
+}
+const researchCharges = () => Math.floor(S.research / CFG.artifactResearch + 1e-9);
 function maxOf(type) {
   if (type === 'tactical') return TYPES.tactical.max + (planesOf('bomber').length >= CFG.tacticalBonusAtBombers ? 1 : 0);
   return S.slots[type];
 }
 // velocità effettiva: motore sonico ×2, caccia salvato dalla difesa jet ×0,5
-const spd = p => p.speed * (S.t < (p.sonicUntil || 0) ? 2 : 1) * (p.damaged ? 0.5 : 1) * (p.joining ? CFG.patrolJoinSpeed : 1) * (p.fast ? CFG.patrolReturnSpeed : 1);
+const techOn = () => S.t < S.fx.techUntil;
+const spd = p => (p.speed + (techOn() ? CFG.art.techBonus : 0)) * (S.t < (p.sonicUntil || 0) ? 2 : 1) * (p.damaged ? 0.5 : 1) * (p.joining ? CFG.patrolJoinSpeed : 1) * (p.fast ? CFG.patrolReturnSpeed : 1);
 const repMult = rep => (CFG.repRecovery.find(r => rep < r.below) || { mult: 1 }).mult;
 const findPlane = id => S.planes.find(p => p.id === id);
 const findThreat = id => S.threats.find(t => t.id === id);
@@ -252,7 +291,7 @@ const A = {
     renderPanel(true);
   },
   speed(v) {
-    if (!S.base || S.over) return;
+    if (!S.base || S.over || S.pending) return;
     v = +v;
     if (v === CFG.turboSpeed) {
       if (S.speed !== CFG.turboSpeed) S.prevSpeed = S.speed || 900;
@@ -323,7 +362,7 @@ const A = {
     if (!p || !isStrike(p) || p.state !== 'base') { addLog('Nessun aereo d\'attacco disponibile alla base: devono rientrare prima di una nuova missione.', 'bad'); return; }
     launch(p);
     p.state = 'flight'; p.target = th.id;
-    const eta = dist(p, th) / p.speed * 60;
+    const eta = dist(p, th) / spd(p) * 60;
     addLog(`${p.id} decolla verso ${th.attack.name} per colpire ${th.id}: arrivo tra ${fmtDur(eta)}.`);
     if (eta > th.cooldownUntil - S.t) addLog(`Attenzione: ${th.id} ripartirà prima che ${p.id} arrivi.`, 'bad');
   },
@@ -335,14 +374,50 @@ const A = {
     f.state = 'escort'; f.escort = l.id; f.engaged = null; f.target = null; f.aim = null;
     addLog(`${f.id} scorta ${l.id}: attaccherà le minacce entro ${CFG.escortRangeKm} km.`);
   },
-  train(planeId) {
-    const p = findPlane(planeId);
-    if (!S.training || !p || p.type !== 'tactical' || p.state !== 'base') return;
+  train(planeId, trId) {
+    const p = findPlane(planeId), tr = S.trainings.find(x => x.id === trId) || S.trainings[0];
+    if (!tr || !p || p.type !== 'tactical' || p.state !== 'base') return;
     launch(p);
-    p.state = 'flight'; p.mission = 'train';
-    addLog(`${p.id} decolla per l'addestramento a ${S.training.base.name}: arrivo tra ${fmtDur(dist(p, S.training.base) / p.speed * 60)}.`);
+    p.state = 'flight'; p.mission = 'train'; p.trainId = tr.id;
+    addLog(`${p.id} decolla per l'addestramento a ${tr.base.name}: arrivo tra ${fmtDur(dist(p, tr.base) / spd(p) * 60)}.`);
   },
   closeModal() { closeModal(); },
+  // acquisto di una base secondaria: nuova scelta tra 10 località casuali (il tempo si ferma)
+  buyBase(kind) {
+    const def = CFG.bases.find(b => b.kind === kind);
+    const nextDef = CFG.bases[S.extra.length];
+    if (!def || def !== nextDef || S.pending) return;
+    if (S.credits < def.cost) { addLog(`Servono ${def.cost} crediti per la ${def.label.toLowerCase()}.`, 'bad'); return; }
+    const rows = worldRows.filter(r => !isOwnBase({ lat: parseFloat(r.Lat_citta), lon: parseFloat(r.Lon_citta) }));
+    S.pending = { kind, sites: pickSites(rows) };
+    S.resumeSpeed = S.speed; S.speed = 0; panelTab = 'basi';
+    addLog(`${def.label}: scegli una delle 10 località proposte.`);
+  },
+  pickSecondary(i) {
+    const pd = S.pending; if (!pd || !pd.sites[+i]) return;
+    const def = CFG.bases.find(b => b.kind === pd.kind), site = pd.sites[+i];
+    if (S.credits < def.cost) { addLog(`Servono ${def.cost} crediti per la ${def.label.toLowerCase()}.`, 'bad'); return; }
+    spend(def.cost, def.label);
+    if (S.over) return;
+    S.extra.push({ kind: pd.kind, site });
+    S.pending = null; S.hoverSite = null; S.speed = S.resumeSpeed || 0;
+    addLog(`${def.label} costruita a ${site.name} (${site.state}, ${site.cont}) per ${def.cost} crediti.`, 'good');
+    if (pd.kind === 'major') { changeRep(CFG.majorRepBonus); addLog(`Base maggiore: reputazione +${CFG.majorRepBonus}%.`, 'good'); }
+  },
+  cancelBase() {
+    if (!S.pending) return;
+    S.pending = null; S.hoverSite = null; S.speed = S.resumeSpeed || 0;
+    addLog('Acquisto della base annullato.');
+  },
+  artifact(id) { activateArtifact(id); },
+  pilotBonus(planeId) {
+    const p = findPlane(planeId);
+    if (!p || p.type !== 'fighter' || S.t >= S.fx.pilotUntil || S.fx.pilotLeft <= 0 || p.state === 'upgrading' || p.state === 'repair' || p.speed >= TYPES.fighter.top) return;
+    S.fx.pilotLeft--;
+    p.bonus = (p.bonus || 0) + 1;
+    addLog(`Addestramento piloti: bonus su ${p.id}${p.state === 'base' ? '' : ' (si applica all\'atterraggio)'}. Ne restano ${S.fx.pilotLeft}.`, 'good');
+    if (p.state === 'base') applyBonus(p);
+  },
   retarget(planeId, threatId) {
     const p = findPlane(planeId), th = findThreat(threatId);
     if (!p || p.state !== 'rtb' || !th || isStrike(p) || p.damaged || p.fast) return;
@@ -433,10 +508,104 @@ function detach(p) {
   for (const e of S.planes) if (e.state === 'escort' && e.escort === p.id) { goHome(e); addLog(`${e.id}: nessuno da scortare, rientro.`); }
   for (const th of S.threats) if (th.state === 'hunting' && th.prey === p.id) { th.state = 'flight'; th.prey = null; }
 }
-function killThreat(th, msg, reward = CFG.killReward) {
-  removeThreat(th.id); S.kills++;
+// groundResearch: % di ricerca se la minaccia era a terra; in volo la ricerca è casuale (1-10%)
+function killThreat(th, msg, reward = CFG.killReward, groundResearch = 0) {
+  removeThreat(th.id);
+  if (th.training) { addLog(`${msg} (bersaglio d'addestramento).`, 'good'); return; }
+  const air = th.state !== 'cooldown';
+  S.kills++;
   S.credits += reward;
-  addLog(`${msg} +${reward} crediti.`, 'good');
+  const rg = addResearch(air ? randInt(CFG.researchKill[0], CFG.researchKill[1]) : groundResearch);
+  addLog(`${msg} +${reward} crediti.${rg ? ` Ricerca +${rg}% (totale ${Math.round(S.research)}%).` : ''}`, 'good');
+}
+const airThreats = () => S.threats.filter(t => t.state !== 'cooldown' && !t.training);
+
+// ---------- Artefatti ----------
+const ARTIFACTS = [
+  { id: 'research', base: 'research', name: 'Ricerca', desc: `Aumenta la ricerca del ${CFG.art.researchBoost}%.`,
+    run() { S.research += CFG.art.researchBoost; addLog(`Artefatto Ricerca: +${CFG.art.researchBoost}% di ricerca (totale ${Math.round(S.research)}%).`, 'good'); } },
+  { id: 'antimatter', base: 'missile', name: 'Missile ad antimateria',
+    desc: `Missile a ${CFG.art.missileSpeed} km/h, ${CFG.art.missileDays} giorni di volo: attacca la minaccia in volo più vicina; a ogni abbattimento il tempo di volo residuo si dimezza e sceglie un altro bersaglio.`,
+    run() {
+      const site = extraOf('missile').site;
+      const m = { id: 'K' + (++S.ids.K), lat: site.lat, lon: site.lon, heading: 0, until: S.t + CFG.art.missileDays * DAY, target: null, trail: [] };
+      S.missiles.push(m);
+      addLog(`Missile ad antimateria ${m.id} lanciato da ${site.name}: ${CFG.art.missileDays} giorni di volo.`, 'good');
+    } },
+  { id: 'quantum', base: 'missile', name: 'Missile quantico', desc: `Abbatte istantaneamente ${CFG.art.quantumKills} minacce in volo a caso.`,
+    can: () => airThreats().length ? '' : 'Nessuna minaccia in volo',
+    run() {
+      const pool = shuffle(airThreats()).slice(0, CFG.art.quantumKills);
+      addLog(`Missile quantico: ${pool.length} ${pool.length === 1 ? 'bersaglio' : 'bersagli'}.`, 'good');
+      for (const th of pool) killThreat(th, `Il missile quantico ha abbattuto ${th.id}.`);
+    } },
+  { id: 'recall', base: 'missile', name: 'Richiamo',
+    desc: `Per ${CFG.art.recallDays} giorno le minacce in volo non possono atterrare (attaccare una base) e si dirigono verso la base che ha attivato l'artefatto.`,
+    run() {
+      S.fx.recallUntil = S.t + CFG.art.recallDays * DAY; S.fx.recallBase = extraOf('missile').site;
+      addLog(`Richiamo attivo per ${CFG.art.recallDays} giorno: le minacce si dirigono verso ${S.fx.recallBase.name}.`, 'good');
+    } },
+  { id: 'quake', base: 'missile', name: 'Terremoto', desc: `Aggiunge da ${CFG.art.quakeMinDays} a ${CFG.art.quakeMaxDays} giorni di attacco a tutte le basi attualmente attaccate: più tempo per bombardarle.`,
+    can: () => S.threats.some(t => t.state === 'cooldown') ? '' : 'Nessuna base sotto attacco',
+    run() {
+      for (const th of S.threats.filter(t => t.state === 'cooldown')) {
+        const d = CFG.art.quakeMinDays + Math.random() * (CFG.art.quakeMaxDays - CFG.art.quakeMinDays);
+        th.cooldownUntil += d * DAY;
+        addLog(`Terremoto a ${th.attack.name}: ${th.id} resta a terra altri ${fmtDur(d * DAY)}.`, 'good');
+      }
+    } },
+  { id: 'pilots', base: 'training', name: 'Addestramento piloti',
+    desc: `Per ${CFG.art.pilotDays} giorni puoi attivare ${CFG.art.pilotBonuses} bonus sui caccia (potenziamento istantaneo, dalla scheda del caccia). I bonus restano anche dopo la scadenza.`,
+    run() { S.fx.pilotUntil = S.t + CFG.art.pilotDays * DAY; S.fx.pilotLeft = CFG.art.pilotBonuses; addLog(`Addestramento piloti: ${CFG.art.pilotBonuses} bonus disponibili per ${CFG.art.pilotDays} giorni (scheda Flotta).`, 'good'); } },
+  { id: 'tech', base: 'training', name: 'Addestramento tecnico', desc: `Tutti gli aerei volano a +${CFG.art.techBonus} km/h per ${CFG.art.techDays} giorni.`,
+    run() { S.fx.techUntil = S.t + CFG.art.techDays * DAY; addLog(`Addestramento tecnico: +${CFG.art.techBonus} km/h a tutti gli aerei per ${CFG.art.techDays} giorni.`, 'good'); } },
+  { id: 'flight', base: 'training', name: 'Addestramento volo',
+    desc: `Per ${CFG.art.flightDays} giorni compare ogni ${CFG.art.flightEveryH} ore una minaccia ferma entro ${CFG.art.flightRadiusKm} km dalla tua base operativa (dura ${CFG.art.flightLifeH} ore). I caccia vincono sempre; niente crediti.`,
+    run() { S.fx.flight = { until: S.t + CFG.art.flightDays * DAY, next: S.t }; addLog(`Addestramento volo attivo per ${CFG.art.flightDays} giorni.`, 'good'); } },
+  { id: 'tactical', base: 'training', name: 'Addestramento tattico', desc: `Crea un addestramento a terra di ${CFG.art.trainDays} giorni in un'altra base (aereo tattico, ${CFG.trainingMedals} medaglia).`,
+    can: () => BASES.some(b => dist(b, S.base) > 500 && !S.trainings.some(t => t.base === b)) ? '' : 'Nessuna base libera',
+    run() { const tr = addTraining(CFG.art.trainDays); addLog(`Addestramento tattico a ${tr.base.name} (${tr.base.state}): invia un aereo tattico entro ${CFG.art.trainDays} giorni.`, 'good'); } },
+  { id: 'monument', base: 'major', name: 'Monumento Minaccia Ignota',
+    desc: `Reputazione +${CFG.art.monumentUp}% per ${CFG.art.monumentDays} giorni; alla disattivazione −${CFG.art.monumentDown}%.`,
+    can: () => S.fx.monumentUntil ? 'Già attivo' : '',
+    run() { changeRep(CFG.art.monumentUp); S.fx.monumentUntil = S.t + CFG.art.monumentDays * DAY; addLog(`Monumento Minaccia Ignota: reputazione +${CFG.art.monumentUp}% per ${CFG.art.monumentDays} giorni.`, 'good'); } },
+];
+// stato di un artefatto: motivo per cui non è attivabile ('' se lo è) e eventuale durata residua
+function artifactState(a) {
+  const at = S.artAt[a.id];
+  const cd = at == null ? 0 : at + CFG.artifactCooldownDays * DAY - S.t;
+  let why = '';
+  if (cd > 0) why = `Riattivabile tra ${fmtDur(cd)}`;
+  else if (researchCharges() < 1) why = `Ricerca insufficiente (${Math.round(S.research)}% su ${CFG.artifactResearch}%)`;
+  else if (S.credits < CFG.artifactCost) why = `Servono ${CFG.artifactCost} crediti`;
+  else if (a.can) why = a.can();
+  return { why, cd };
+}
+function activateArtifact(id) {
+  const a = ARTIFACTS.find(x => x.id === id);
+  if (!a || !extraOf(a.base) || S.over || S.pending) return;
+  const st = artifactState(a);
+  if (st.why) { addLog(`Artefatto ${a.name}: ${st.why.toLowerCase()}.`, 'bad'); return; }
+  spend(CFG.artifactCost, `Artefatto ${a.name}`);
+  if (S.over) return;
+  S.research -= CFG.artifactResearch;
+  S.artAt[a.id] = S.t;
+  addLog(`Artefatto ${a.name} attivato: −${CFG.artifactCost} crediti, −${CFG.artifactResearch}% di ricerca.`);
+  a.run();
+}
+function addTraining(days) {
+  const cand = BASES.filter(b => dist(b, S.base) > 500 && !S.trainings.some(t => t.base === b));
+  if (!cand.length) return null;
+  const tr = { id: 'D' + (++S.ids.D), base: cand[Math.floor(Math.random() * cand.length)], until: S.t + days * DAY };
+  S.trainings.push(tr); panelDirty = true;
+  return tr;
+}
+// minaccia ferma d'addestramento vicino alla base operativa
+function spawnTrainingThreat() {
+  const pos = travel(S.base, Math.random() * 360, Math.sqrt(Math.random()) * CFG.art.flightRadiusKm).pos;
+  const th = { trail: [], id: 'M' + (++S.ids.M), lat: pos.lat, lon: pos.lon, bearing: 0, born: S.t, flightStart: S.t, state: 'flight', attack: null, prey: null, training: true, expires: S.t + CFG.art.flightLifeH * 60, course: 0 };
+  S.threats.push(th);
+  addLog(`Addestramento volo: bersaglio ${th.id} a ${fmtCoord(th)}, ${Math.round(dist(th, S.base))} km dalla base.`);
 }
 
 // ---------- Simulazione ----------
@@ -486,6 +655,31 @@ function step(dt) {
       if (Math.random() < chance) { addLog(`${extra} ${extra === 1 ? 'punto' : 'punti'} di reputazione extra: medaglia ottenuta (probabilità ${Math.round(chance * 100)}%, totale ${S.medals + 1}).`, 'good'); addMedal(1); }
       else addLog(`${extra} ${extra === 1 ? 'punto' : 'punti'} di reputazione extra: nessuna medaglia oggi (probabilità ${Math.round(chance * 100)}%).`);
     }
+    if (extraOf('major') && S.rep >= 100) {
+      addLog(`Base maggiore: reputazione al 100%, medaglia del giorno (totale ${S.medals + 1}).`, 'good');
+      addMedal(1);
+      if (S.over) return;
+    }
+  }
+
+  // effetti degli artefatti
+  const fx = S.fx;
+  if (fx.recallUntil && t1 >= fx.recallUntil) {
+    fx.recallUntil = 0;
+    for (const th of S.threats) if (th.recalled) { th.recalled = false; th.course = (th.course || 0) + 1; }
+    addLog('Richiamo terminato: le minacce riprendono a muoversi liberamente.');
+  }
+  if (fx.pilotUntil && t1 >= fx.pilotUntil) { addLog(`Addestramento piloti terminato${fx.pilotLeft ? ` (${fx.pilotLeft} bonus non usati persi)` : ''}.`); fx.pilotUntil = 0; fx.pilotLeft = 0; }
+  if (fx.techUntil && t1 >= fx.techUntil) { fx.techUntil = 0; addLog('Addestramento tecnico terminato: velocità normale.'); }
+  if (fx.flight) {
+    if (t1 >= fx.flight.until) { fx.flight = null; addLog('Addestramento volo terminato.'); }
+    else while (fx.flight && t1 >= fx.flight.next) { spawnTrainingThreat(); fx.flight.next += CFG.art.flightEveryH * 60; }
+  }
+  if (fx.monumentUntil && t1 >= fx.monumentUntil) {
+    fx.monumentUntil = 0;
+    addLog(`Il Monumento Minaccia Ignota si disattiva: reputazione −${CFG.art.monumentDown}%.`, 'bad');
+    changeRep(-CFG.art.monumentDown);
+    if (S.over) return;
   }
 
   // ricognitori: segnalazione casuale, in media una ogni N giorni di volo
@@ -495,21 +689,26 @@ function step(dt) {
   }
 
   // missione di addestramento: compare a caso (in media una a settimana), scade dopo 10 giorni
-  if (S.training && S.t >= S.training.until) {
-    addLog(`L'addestramento a ${S.training.base.name} è scaduto senza essere svolto.`, 'bad');
-    S.training = null; panelDirty = true;
-  } else if (!S.training && Math.random() < 1 - Math.exp(-dt / (CFG.trainingEveryDays * DAY))) {
-    const cand = BASES.filter(b => dist(b, S.base) > 500);
-    const b = cand[Math.floor(Math.random() * cand.length)];
-    S.training = { base: b, until: S.t + CFG.trainingWindowDays * DAY };
-    addLog(`Missione di addestramento a ${b.name} (${b.state}): invia un aereo tattico entro ${CFG.trainingWindowDays} giorni, premio ${CFG.trainingMedals} medaglia.`, 'good');
+  for (const tr of [...S.trainings]) if (S.t >= tr.until) {
+    addLog(`L'addestramento a ${tr.base.name} è scaduto senza essere svolto.`, 'bad');
+    S.trainings = S.trainings.filter(x => x !== tr); panelDirty = true;
+  }
+  if (!S.trainings.length && Math.random() < 1 - Math.exp(-dt / (CFG.trainingEveryDays * DAY))) {
+    const tr = addTraining(CFG.trainingWindowDays);
+    if (tr) addLog(`Missione di addestramento a ${tr.base.name} (${tr.base.state}): invia un aereo tattico entro ${CFG.trainingWindowDays} giorni, premio ${CFG.trainingMedals} medaglia.`, 'good');
   }
 
   // minacce
   const hourCrossed = Math.floor(t1 / 60) > Math.floor(t0 / 60);
   const km = thSpeed() * dt / 60;
+  const recall = S.t < S.fx.recallUntil;
   for (const th of [...S.threats]) {
     if (!S.threats.includes(th)) continue;
+    if (th.training) {
+      if (S.t >= th.expires) { removeThreat(th.id); addLog(`Il bersaglio d'addestramento ${th.id} si è dissolto.`); }
+      continue;
+    }
+    if (recall && th.state === 'inbound') { th.state = 'flight'; th.attack = null; th.course = (th.course || 0) + 1; }
     if (th.state === 'cooldown') {
       if (S.t >= th.cooldownUntil) {
         th.state = 'flight'; th.flightStart = S.t; th.bearing = Math.random() * 360; th.course = (th.course || 0) + 1;
@@ -525,19 +724,19 @@ function step(dt) {
       if (prey && Math.random() < CFG.huntChance) {
         th.state = 'hunting'; th.prey = prey.id; th.attack = null; th.course = (th.course || 0) + 1;
         addLog(`${th.id} ha avvistato ${prey.id} a ${Math.round(dist(prey, th))} km e gli va incontro!`, 'bad');
-      } else if (th.state === 'flight' && S.t - th.flightStart >= CFG.attackAfterH * 60 && Math.random() < atkCh()) {
+      } else if (!recall && th.state === 'flight' && S.t - th.flightStart >= CFG.attackAfterH * 60 && Math.random() < atkCh()) {
         // qualsiasi base del mondo, purché non sia già occupata o presa di mira da un'altra minaccia
         const taken = new Set(S.threats.filter(o => o.attack).map(o => o.attack.key));
         const free = BASES.map((b, i) => i).filter(i => !taken.has(i));
         if (free.length) {
           const key = free[Math.floor(Math.random() * free.length)], tgt = BASES[key];
-          const own = dist(tgt, S.base) < 1;
+          const own = isOwnBase(tgt);
           th.state = 'inbound'; th.attack = { key, name: own ? `${tgt.name} (la tua base)` : tgt.name, lat: tgt.lat, lon: tgt.lon };
           th.course = (th.course || 0) + 1;
           // al giocatore appare come un normale cambio di rotta
           addLog(`${th.id} ha cambiato direzione (rotta ${Math.round(bearingTo(th, tgt))}°).`);
         }
-      } else if (th.state === 'flight' && Math.random() < CFG.threatTurnChance) {
+      } else if (!recall && th.state === 'flight' && Math.random() < CFG.threatTurnChance) {
         th.bearing = Math.random() * 360; th.course = (th.course || 0) + 1;
         addLog(`${th.id} ha cambiato direzione (rotta ${Math.round(th.bearing)}°).`);
       }
@@ -561,9 +760,31 @@ function step(dt) {
         continue;
       }
     }
+    if (recall && th.state === 'flight') {
+      if (!th.recalled) { th.recalled = true; th.course = (th.course || 0) + 1; }
+      th.bearing = bearingTo(th, S.fx.recallBase);
+      if (dist(th, S.fx.recallBase) <= km) { th.lat = S.fx.recallBase.lat; th.lon = S.fx.recallBase.lon; continue; }
+    }
     trail(th);
     const mv = travel(th, th.bearing, km);
     th.lat = mv.pos.lat; th.lon = mv.pos.lon; th.bearing = mv.bearing;
+  }
+
+  // missili ad antimateria
+  const mkm = CFG.art.missileSpeed * dt / 60;
+  for (const m of [...S.missiles]) {
+    if (S.t >= m.until) { S.missiles = S.missiles.filter(x => x !== m); addLog(`Il missile ${m.id} ha esaurito il tempo di volo.`); continue; }
+    let th = m.target && findThreat(m.target);
+    if (!th || th.state === 'cooldown' || th.training) {
+      th = airThreats().sort((a, b) => dist(m, a) - dist(m, b))[0]; m.target = th ? th.id : null;
+    }
+    if (!th) continue;
+    if (dist(m, th) <= mkm + CFG.art.missileRadiusKm) {
+      m.lat = th.lat; m.lon = th.lon;
+      killThreat(th, `Il missile ${m.id} ha distrutto ${th.id}.`);
+      m.until = S.t + (m.until - S.t) / 2; m.target = null;
+      addLog(`${m.id}: tempo di volo dimezzato, restano ${fmtDur(m.until - S.t)}.`);
+    } else { trail(m); moveTo(m, th, mkm); }
   }
 
   // aerei
@@ -601,12 +822,12 @@ function step(dt) {
     }
 
     if (p.state === 'flight' && p.mission === 'train') {
-      const tr = S.training;
+      const tr = S.trainings.find(x => x.id === p.trainId);
       if (!tr) { goHome(p); addLog(`${p.id}: addestramento non più disponibile, rientro.`); }
       else if (dist(p, tr.base) <= pkm + CFG.interceptRadiusKm) {
         p.lat = tr.base.lat; p.lon = tr.base.lon;
         addLog(`${p.id} ha completato l'addestramento a ${tr.base.name}: +${CFG.trainingMedals} medaglia.`, 'good');
-        S.training = null; S.trainDone++;
+        S.trainings = S.trainings.filter(x => x !== tr); S.trainDone++;
         goHome(p);
         addMedal(CFG.trainingMedals);
         if (S.over) return;
@@ -632,12 +853,12 @@ function step(dt) {
         p.lat = th.lat; p.lon = th.lon;
         const where = th.attack.name;
         if (p.type === 'bomber') {
-          killThreat(th, `${p.id} ha bombardato ${where} distruggendo ${th.id}.`);
+          killThreat(th, `${p.id} ha bombardato ${where} distruggendo ${th.id}.`, undefined, CFG.researchBomb);
           earnWin(p);
           spend(CFG.rebuildCost, 'Ricostruzione');
           addLog(`Ricostruzione di ${where.replace(' (la tua base)', '')}: −${CFG.rebuildCost} crediti.`, 'bad');
         } else {
-          killThreat(th, `${p.id} ha raggiunto ${where} e ha eliminato ${th.id} senza danni.`, CFG.tacticalReward);
+          killThreat(th, `${p.id} ha raggiunto ${where} e ha eliminato ${th.id} senza danni.`, CFG.tacticalReward, CFG.researchTactical);
           earnWin(p);
         }
         goHome(p);
@@ -724,7 +945,7 @@ function chase(f, th, km, remaining) {
       addLog(`${ms.map(m => m.id).join(', ')} rientrano a velocità ×${CFG.patrolReturnSpeed}, ma non possono intercettare altro fino all'atterraggio.`, 'good');
       return;
     }
-    if (Math.random() < winCh()) {
+    if (th.training || Math.random() < winCh()) {
       killThreat(th, `${f.id} ha abbattuto ${th.id}!`);
       earnWin(f);
       if (f.state === 'escort') { f.engaged = null; f.aim = null; addLog(`${f.id} torna a scortare ${f.escort}.`); }
@@ -756,7 +977,7 @@ function ambush(th, prey) {
 }
 // primo punto lungo la rotta attuale della minaccia che il caccia può raggiungere prima di lei
 function solveIntercept(f, th, maxMin) {
-  const v = thSpeed() / 60, u = spd(f) / 60;
+  const v = th.training ? 0 : thSpeed() / 60, u = spd(f) / 60;
   const stop = th.state === 'inbound' ? dist(th, th.attack) : Infinity;
   const at = t => travel(th, th.bearing, Math.min(v * t, stop)).pos;
   const g = t => dist(f, at(t)) - u * t;
@@ -810,7 +1031,7 @@ let W = 0, H = 0, colors = {};
 const planeColor = p => p.patrolId && p.state === 'flight' ? colors.patrol : p.damaged && p.state === 'rtb' ? colors.damaged : colors[TYPES[p.type].color];
 function readColors() {
   const cs = getComputedStyle(document.documentElement);
-  for (const k of ['ocean', 'ocean-hi', 'land', 'coast', 'grid', 'ink', 'ink-soft', 'base', 'threat', 'fighter', 'bomber', 'tactical', 'panel', 'patrol', 'damaged']) colors[k] = cs.getPropertyValue('--' + k).trim();
+  for (const k of ['ocean', 'ocean-hi', 'land', 'coast', 'grid', 'ink', 'ink-soft', 'base', 'threat', 'fighter', 'bomber', 'tactical', 'panel', 'patrol', 'damaged', 'missile']) colors[k] = cs.getPropertyValue('--' + k).trim();
 }
 function resize() {
   const wrap = canvas.parentElement;
@@ -905,24 +1126,34 @@ function draw(now) {
 
   const pulse = (Math.sin(now / 300) + 1) / 2;
 
-  if (!S.base) {
-    S.sites.forEach((s, i) => {
-      const [x, y] = px(s);
-      const hot = S.hoverSite === i;
-      ctx.beginPath(); ctx.arc(x, y, hot ? 9 : 6, 0, Math.PI * 2);
-      ctx.fillStyle = colors.base; ctx.globalAlpha = hot ? 1 : 0.85; ctx.fill(); ctx.globalAlpha = 1;
-      ctx.beginPath(); ctx.arc(x, y, 12 + pulse * 6, 0, Math.PI * 2);
-      ctx.strokeStyle = colors.base; ctx.globalAlpha = 0.5 * (1 - pulse); ctx.lineWidth = 1.5; ctx.stroke(); ctx.globalAlpha = 1;
-      ctx.fillStyle = colors.ink; ctx.font = '600 12px Barlow, system-ui, sans-serif';
-      txt(s.name, x + 10, y - 8);
-    });
-    return;
-  }
+  const drawSites = sites => sites.forEach((s, i) => {
+    const [x, y] = px(s);
+    const hot = S.hoverSite === i;
+    ctx.beginPath(); ctx.arc(x, y, hot ? 9 : 6, 0, Math.PI * 2);
+    ctx.fillStyle = colors.base; ctx.globalAlpha = hot ? 1 : 0.85; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.arc(x, y, 12 + pulse * 6, 0, Math.PI * 2);
+    ctx.strokeStyle = colors.base; ctx.globalAlpha = 0.5 * (1 - pulse); ctx.lineWidth = 1.5; ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.fillStyle = colors.ink; ctx.font = '600 12px Barlow, system-ui, sans-serif';
+    txt(s.name, x + 10, y - 8);
+  });
+  if (!S.base) { drawSites(S.sites); return; }
 
   const [bx, by] = px(S.base);
   ctx.save(); ctx.translate(bx, by); ctx.rotate(Math.PI / 4);
   ctx.fillStyle = colors.base; ctx.fillRect(-6, -6, 12, 12); ctx.restore();
   ctx.fillStyle = colors.ink; ctx.font = '600 12px Barlow, system-ui, sans-serif'; txt(S.base.name, bx + 11, by + 4);
+  // basi secondarie: quadrato con la sigla del tipo
+  for (const b of S.extra) {
+    const [ex, ey] = px(b.site);
+    ctx.save(); ctx.translate(ex, ey); ctx.rotate(Math.PI / 4);
+    ctx.strokeStyle = colors.base; ctx.lineWidth = 2; ctx.strokeRect(-5, -5, 10, 10); ctx.restore();
+    ctx.fillStyle = colors.ink; ctx.font = '600 11px Barlow, system-ui, sans-serif';
+    txt(`${BASE_TAG[b.kind]} ${b.site.name}`, ex + 10, ey + 4);
+  }
+  if (S.fx.recallUntil > S.t) {
+    const [rx, ry] = px(S.fx.recallBase), r = 14 + pulse * 10;
+    ctx.beginPath(); ctx.arc(rx, ry, r, 0, Math.PI * 2); ctx.strokeStyle = colors.missile; ctx.globalAlpha = 0.7; ctx.lineWidth = 1.5; ctx.setLineDash([3, 4]); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+  }
 
   const line = (a, b, color, dash, alpha = 0.6, w = 1) => geoLine(a, b, color, dash, alpha, w);
 
@@ -943,13 +1174,13 @@ function draw(now) {
   if (selTh && selTh.state !== 'cooldown') strokePts(courseFrom(selTh, selTh.bearing, 4000), colors.threat, [2, 5], 0.55, 1.2);
 
   // missione di addestramento
-  if (S.training) {
-    const [tx, ty] = px(S.training.base), r = 7 + pulse * 3;
+  for (const tr of S.trainings) {
+    const [tx, ty] = px(tr.base), r = 7 + pulse * 3;
     ctx.save(); ctx.translate(tx, ty); ctx.strokeStyle = colors.tactical; ctx.lineWidth = 2; ctx.beginPath();
     ctx.moveTo(0, -r); ctx.lineTo(r, 0); ctx.lineTo(0, r); ctx.lineTo(-r, 0); ctx.closePath(); ctx.stroke(); ctx.restore();
     ctx.fillStyle = colors.tactical; ctx.font = '600 11px "Chakra Petch", system-ui, sans-serif';
-    txt(`Addestramento ${S.training.base.name}`, tx + 12, ty - 6);
-    ctx.fillStyle = colors['ink-soft']; txt(`scade tra ${fmtDur(S.training.until - S.t)}`, tx + 12, ty + 8);
+    txt(`Addestramento ${tr.base.name}`, tx + 12, ty - 6);
+    ctx.fillStyle = colors['ink-soft']; txt(`scade tra ${fmtDur(tr.until - S.t)}`, tx + 12, ty + 8);
   }
 
   // rotte degli aerei: sempre archi di cerchio massimo, come le traiettorie reali
@@ -966,7 +1197,8 @@ function draw(now) {
     }
     const pat = patrolOf(p);
     if (pat && pat.leader !== p.id) { const ld = findPlane(pat.leader); if (ld && !p.joined) line(p, ld, c, [2, 3], 0.9, 1.6); continue; }
-    if (p.mission === 'train' && S.training) { line(p, S.training.base, c, [8, 4], 0.7); continue; }
+    const trm = p.mission === 'train' && S.trainings.find(x => x.id === p.trainId);
+    if (trm) { line(p, trm.base, c, [8, 4], 0.7); continue; }
     const th = findThreat(p.target);
     if (!th) continue;
     let tgt = th;
@@ -1001,10 +1233,25 @@ function draw(now) {
     if (th.state === 'hunting') { const prey = findPlane(th.prey); if (prey) line(th, prey, colors.threat, [2, 3], 0.9, 1.5); }
     ctx.beginPath(); ctx.arc(x, y, 10 + pulse * 8, 0, Math.PI * 2);
     ctx.strokeStyle = colors.threat; ctx.globalAlpha = 0.45 * (1 - pulse); ctx.lineWidth = 2; ctx.stroke(); ctx.globalAlpha = 1;
-    drawArrow(x, y, th.bearing, colors.threat, sel ? 9 : 7);
+    if (th.training) { ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.strokeStyle = colors.threat; ctx.lineWidth = 1.5; ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]); }
+    else drawArrow(x, y, th.bearing, colors.threat, sel ? 9 : 7);
     if (sel) { ctx.beginPath(); ctx.arc(x, y, 14, 0, Math.PI * 2); ctx.strokeStyle = colors.threat; ctx.lineWidth = 1.5; ctx.stroke(); }
-    ctx.fillStyle = colors.threat; txt(th.id, x + 10, y - 8);
+    ctx.fillStyle = colors.threat; txt(th.training ? `${th.id} addestramento` : th.id, x + 10, y - 8);
   }
+
+  // missili ad antimateria
+  for (const m of S.missiles) {
+    const th = m.target && findThreat(m.target);
+    if (th) line(m, th, colors.missile, [2, 3], 0.8, 1.2);
+    if (m.trail.length) strokePts([...m.trail, m], colors.missile, [], 0.4, 1.5);
+    const [x, y] = px(m);
+    drawArrow(x, y, m.heading || 0, colors.missile, 6);
+    ctx.fillStyle = colors.missile; ctx.font = '600 11px "Chakra Petch", system-ui, sans-serif';
+    txt(`${m.id} ${fmtDur(m.until - S.t)}`, x + 9, y + 12);
+  }
+
+  // scelta della località di una nuova base
+  if (S.pending) drawSites(S.pending.sites);
 
   // aerei
   for (const p of S.planes) {
@@ -1037,24 +1284,27 @@ function hit(e) {
   const near = (p, rr = 12) => { const [a, b] = px(p); return Math.hypot(a - x, b - y) < rr; };
   return { x, y, near };
 }
-const THREAT_STATE = th => ({
+const BASE_TAG = { research: 'R', missile: 'M', training: 'A', major: '★' };
+const THREAT_STATE = th => th.training ? 'Bersaglio d\'addestramento (fermo)' : ({
   flight: 'In volo', inbound: 'In volo', hunting: `Va incontro a ${th.prey}`,
   cooldown: `Attacca ${th.attack && th.attack.name}`,
 }[th.state]);
 canvas.addEventListener('mousemove', e => {
   const { x, y, near } = hit(e);
   let html = '';
-  if (!S.base) {
-    const i = S.sites.findIndex(s => near(s));
-    if (S.hoverSite !== i) { S.hoverSite = i < 0 ? null : i; panelDirty = true; }
-    if (i >= 0) { const s = S.sites[i]; html = `<b>${s.name}</b><br>${s.zone}, ${s.state}<br>${s.cont}`; }
+  const sites = !S.base ? S.sites : S.pending ? S.pending.sites : null;
+  if (sites) {
+    const i = sites.findIndex(s => near(s));
+    if (S.hoverSite !== (i < 0 ? null : i)) { S.hoverSite = i < 0 ? null : i; panelDirty = true; }
+    if (i >= 0) { const s = sites[i]; html = `<b>${s.name}</b><br>${s.zone}, ${s.state}<br>${s.cont}`; }
   } else {
     const th = S.threats.find(t => near(t));
     const p = S.planes.find(f => isAir(f) && near(f));
     if (th) html = `<b>${th.id}</b> ${THREAT_STATE(th)}<br>${fmtCoord(th)}, ${Math.round(dist(th, S.base))} km dalla base<br>Clic per selezionare`;
     else if (p) html = `<b>${p.id}</b> ${TYPES[p.type].label}, ${p.speed} km/h<br>${planeStateText(p)}`;
-    else if (S.training && near(S.training.base)) html = `<b>Addestramento: ${S.training.base.name}</b><br>Invia un aereo tattico, premio ${CFG.trainingMedals} medaglia<br>Scade tra ${fmtDur(S.training.until - S.t)}`;
+    else if (S.trainings.find(tr => near(tr.base))) { const tr = S.trainings.find(x => near(x.base)); html = `<b>Addestramento: ${tr.base.name}</b><br>Invia un aereo tattico, premio ${CFG.trainingMedals} medaglia<br>Scade tra ${fmtDur(tr.until - S.t)}`; }
     else if (near(S.base)) html = `<b>Base: ${S.base.name}</b><br>${S.base.state}, ${S.base.cont}`;
+    else if (S.extra.find(b => near(b.site))) { const b = S.extra.find(x => near(x.site)); html = `<b>${CFG.bases.find(d => d.kind === b.kind).label}: ${b.site.name}</b><br>${b.site.state}, ${b.site.cont}`; }
   }
   if (html) {
     tooltip.innerHTML = html; tooltip.style.display = 'block';
@@ -1062,10 +1312,11 @@ canvas.addEventListener('mousemove', e => {
     tooltip.style.left = left + 'px'; tooltip.style.top = (y + 28) + 'px';
   } else tooltip.style.display = 'none';
 });
-canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; if (!S.base) { S.hoverSite = null; panelDirty = true; } });
+canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; if (!S.base || S.pending) { S.hoverSite = null; panelDirty = true; } });
 canvas.addEventListener('click', e => {
   const { near } = hit(e);
   if (!S.base) { const i = S.sites.findIndex(s => near(s, 14)); if (i >= 0) A.pickBase(i); return; }
+  if (S.pending) { const i = S.pending.sites.findIndex(s => near(s, 14)); if (i >= 0) { A.pickSecondary(i); panelDirty = true; renderPanel(); } return; }
   const th = S.threats.find(t => near(t, 16));
   if (th) A.selectThreat(th.id);
 });
@@ -1098,7 +1349,7 @@ function renderTop() {
   document.querySelectorAll('#speeds button').forEach(b => {
     b.setAttribute('aria-pressed', String(+b.dataset.speed === S.speed));
     if (+b.dataset.speed === CFG.turboSpeed) b.textContent = S.speed === CFG.turboSpeed ? `1h · ${Math.ceil(S.turboLeft / 60)}h` : '1h';
-    b.disabled = !S.base || S.over;
+    b.disabled = !S.base || S.over || !!S.pending;
   });
 }
 function renderLog() {
@@ -1112,7 +1363,8 @@ function planeStateText(p) {
   if (p.state === 'rtb' && p.fast) return 'Rientro rapido dopo la pattuglia';
   if (p.state === 'rtb') return p.damaged ? 'Danneggiato, rientro a metà velocità' : 'In rientro';
   if (p.state === 'escort') return p.engaged ? `Scorta ${p.escort}, ingaggia ${p.engaged}` : `Scorta ${p.escort}`;
-  if (p.mission === 'train' && S.training) return `Verso ${S.training.base.name} (addestramento), ${Math.round(dist(p, S.training.base))} km`;
+  const trm = p.mission === 'train' && S.trainings.find(x => x.id === p.trainId);
+  if (trm) return `Verso ${trm.base.name} (addestramento), ${Math.round(dist(p, trm.base))} km`;
   const pt = patrolOf(p);
   if (pt && p.state === 'flight') return pt.leader === p.id ? `Capo pattuglia ${pt.id} su ${p.target}` : p.joined ? `In pattuglia ${pt.id} con ${pt.leader}` : `Raggiunge ${pt.leader} (pattuglia ${pt.id}), ×${CFG.patrolJoinSpeed}`;
   const th = findThreat(p.target);
@@ -1153,10 +1405,10 @@ function planeCard(p, aut) {
       if (sel && sel.state !== 'cooldown') actions += `<button class="btn danger" data-action="intercept" data-a="${sel.id}" data-b="${p.id}">Decolla verso ${sel.id}</button>`;
       for (const l of S.planes.filter(l => isStrike(l) && isAir(l)))
         actions += `<button class="btn" data-action="escort" data-a="${p.id}" data-b="${l.id}">Scorta ${l.id}</button>`;
-    } else if (p.type === 'tactical' && S.training && !(sel && sel.state === 'cooldown')) {
-      actions += `<button class="btn" data-action="train" data-a="${p.id}">Addestramento a ${S.training.base.name} (${fmtDur(dist(S.base, S.training.base) / p.speed * 60)})</button>`;
+    } else if (p.type === 'tactical' && S.trainings.length && !(sel && sel.state === 'cooldown')) {
+      for (const tr of S.trainings) actions += `<button class="btn" data-action="train" data-a="${p.id}" data-b="${tr.id}">Addestramento a ${tr.base.name} (${fmtDur(dist(S.base, tr.base) / spd(p) * 60)})</button>`;
     } else if (sel && sel.state === 'cooldown') {
-      const eta = dist(S.base, sel) / p.speed * 60;
+      const eta = dist(S.base, sel) / spd(p) * 60;
       actions += `<button class="btn danger" data-action="strike" data-a="${sel.id}" data-b="${p.id}">Colpisci ${sel.id} (${fmtDur(eta)})</button>`;
     }
   } else {
@@ -1168,7 +1420,7 @@ function planeCard(p, aut) {
     if (isStrike(p) && p.state === 'flight') {
       const th = findThreat(p.target);
       if (th) {
-        const eta = dist(p, th) / p.speed * 60, cd = th.cooldownUntil - S.t;
+        const eta = dist(p, th) / spd(p) * 60, cd = th.cooldownUntil - S.t;
         extra += `<span class="note ${eta > cd ? 'warn-text' : ''}">Arrivo tra ${fmtDur(eta)}, ${th.id} riparte tra ${fmtDur(cd)}</span>`;
       }
     }
@@ -1178,7 +1430,7 @@ function planeCard(p, aut) {
       extra += `<span class="note">${esc.length ? `Scortato da ${esc.join(', ')}` : 'Senza scorta'}</span>`;
     }
     if (isStrike(p)) {
-      if (p.state === 'rtb') extra += `<span class="note">Deve rientrare alla base prima di una nuova missione: arrivo tra ${fmtDur(dist(p, S.base) / p.speed * 60)}.</span>`;
+      if (p.state === 'rtb') extra += `<span class="note">Deve rientrare alla base prima di una nuova missione: arrivo tra ${fmtDur(dist(p, S.base) / spd(p) * 60)}.</span>`;
     } else extra += `<div class="bar ${frac < 0.25 ? 'warn' : ''}"><i style="width:${frac * 100}%"></i></div><span class="note">Autonomia residua ${fmtDur(left)}</span>`;
     if (p.state === 'flight' || p.state === 'escort') actions = `<button class="btn ghost" data-action="recall" data-a="${p.id}">Richiama</button>`;
     else {
@@ -1189,13 +1441,15 @@ function planeCard(p, aut) {
         actions += `<button class="btn" data-action="escort" data-a="${p.id}" data-b="${l.id}">Scorta ${l.id}</button>`;
     }
   }
+  if (p.type === 'fighter' && S.t < S.fx.pilotUntil && S.fx.pilotLeft > 0 && p.state !== 'upgrading' && p.state !== 'repair' && p.speed < T.top)
+    actions += `<button class="btn" data-action="pilotBonus" data-a="${p.id}">Bonus pilota (${S.fx.pilotLeft} rimasti)</button>`;
   const mode = p.type !== 'fighter' ? '' : `<div class="modes" role="group" aria-label="Rotta di ${p.id}">
       <button data-action="setMode" data-a="${p.id}" data-b="pursuit" aria-pressed="${p.mode === 'pursuit'}">Inseguimento</button>
       <button data-action="setMode" data-a="${p.id}" data-b="lead" aria-pressed="${p.mode === 'lead'}">Punto d'incontro</button>
     </div>`;
   return `<div class="plane ${p.state} t-${p.type}${p.patrolId && p.state === 'flight' ? ' patrol' : ''}${p.damaged && p.state === 'rtb' ? ' damaged' : ''}">
     <div class="plane-head"><span class="tag">${p.id}</span>
-      <span class="state">${planeStateText(p)}</span><span class="speed">${spd(p) !== p.speed && isAir(p) ? `${Math.round(spd(p))} km/h${p.damaged ? '' : p.fast ? ' (rientro rapido)' : p.joining ? ' (in raggiungimento)' : ' (sonico)'}` : `${p.speed} km/h`}</span></div>
+      <span class="state">${planeStateText(p)}</span><span class="speed">${spd(p) !== p.speed && (isAir(p) || techOn()) ? `${Math.round(spd(p))} km/h${p.damaged ? '' : p.fast ? ' (rientro rapido)' : p.joining ? ' (in raggiungimento)' : S.t < (p.sonicUntil || 0) ? ' (sonico)' : ' (addestramento tecnico)'}` : `${p.speed} km/h`}</span></div>
     ${gearRow(p)}
     <span class="note">${winsText(p)}</span>
     ${extra}
@@ -1205,11 +1459,11 @@ function planeCard(p, aut) {
 function rankBlock() {
   const i = rankIdx(S.medals), nx = RANKS[i + 1], cur = RANKS[i];
   const pct = nx ? (S.medals - cur.at) / (nx.at - cur.at) * 100 : 100;
-  const tr = S.training;
+  const trs = S.trainings;
   return `<div class="rankbox"><b>${cur.name}</b>${nx ? ` · prossimo grado: ${nx.name} a ${nx.at} medaglie` : ''}
     <div class="bar"><i style="width:${pct}%"></i></div>
     <span class="note">Obiettivo: ${MEDALS_GOAL} medaglie, Generale Planetario. Ogni grado aumenta la difficoltà: minacce +${Math.round(i * CFG.diffSpeed * 100)}% più veloci, vittoria in combattimento ${Math.round(winCh() * 100)}%, attacchi ${Math.round(atkCh() * 100)}% l'ora.</span>
-    ${tr ? `<span class="note ok-text"><b>Addestramento a ${tr.base.name}</b> (${tr.base.state}): invia un aereo tattico entro ${fmtDur(tr.until - S.t)} per ${CFG.trainingMedals} medaglia.</span>`
+    ${trs.length ? trs.map(tr => `<span class="note ok-text"><b>Addestramento a ${tr.base.name}</b> (${tr.base.state}): invia un aereo tattico entro ${fmtDur(tr.until - S.t)} per ${CFG.trainingMedals} medaglia.</span>`).join('')
          : `<span class="note">Una missione di addestramento compare in media ogni ${CFG.trainingEveryDays} giorni e resta valida ${CFG.trainingWindowDays} giorni: richiede l'aereo tattico.</span>`}
   </div>`;
 }
@@ -1269,10 +1523,11 @@ function renderPanelBody() {
         <button class="btn danger" data-action="strike" data-a="${th.id}" data-b="tactical" ${readyA ? '' : 'disabled'}>Tattico</button>
       </div></div>`;
     let status;
-    if (th.state === 'hunting') status = `<b class="warn-text">Va incontro a ${th.prey}, ${Math.round(dist(th, findPlane(th.prey) || th))} km</b>`;
+    if (th.training) status = `Bersaglio d'addestramento: i caccia vincono sempre, nessun credito. Si dissolve tra ${fmtDur(th.expires - S.t)}`;
+    else if (th.state === 'hunting') status = `<b class="warn-text">Va incontro a ${th.prey}, ${Math.round(dist(th, findPlane(th.prey) || th))} km</b>`;
     else status = S.t - th.flightStart < CFG.attackAfterH * 60 ? `Può attaccare tra ${fmtDur(CFG.attackAfterH * 60 - (S.t - th.flightStart))}` : 'Può attaccare in qualsiasi momento';
     return `<div class="row ${sel ? 'selected' : ''}"><span class="tag" style="--tag:var(--threat)">${th.id}</span>
-      <div class="info"><span class="state">${Math.round(dist(th, S.base))} km dalla base</span><br>${fmtCoord(th)}, rotta ${Math.round(th.bearing)}°<br>${status}${chasers.length ? `<br>Inseguita da ${chasers.join(', ')}` : ''}</div>
+      <div class="info"><span class="state">${Math.round(dist(th, S.base))} km dalla base</span><br>${th.training ? fmtCoord(th) : `${fmtCoord(th)}, rotta ${Math.round(th.bearing)}°`}<br>${status}${chasers.length ? `<br>Inseguita da ${chasers.join(', ')}` : ''}</div>
       <div class="actions">${selBtn}
         <button class="btn danger" data-action="intercept" data-a="${th.id}" ${readyF ? '' : 'disabled'}>Intercetta</button>
         ${chasersOf(th).length >= CFG.patrolSize ? `<button class="btn" data-action="patrol" data-a="${th.id}" title="Due caccia raggiungono il più vicino a velocità ×${CFG.patrolJoinSpeed}; al contatto successo certo">Forma pattuglia</button>` : ''}
@@ -1325,14 +1580,60 @@ function renderPanelBody() {
     ${supportBlock('tanker', 'Rifornitori', CFG.tankerLevels, CFG.tankerPerDay,
       `${CFG.tankerPerDay} crediti al giorno ciascuno, +${CFG.tankerBonusH} h di autonomia ai caccia per ognuno. Autonomia per i prossimi decolli: ${aut.toFixed(0)} h; ridurli non toglie autonomia ai caccia già in volo. Ogni modifica blocca i livelli per 24 ore.${Object.keys(CFG.tankerRepLoss).map(k => ` Con ${k} attivi la reputazione cala di ${CFG.tankerRepLoss[k]} al giorno.`).join('')}`)}
   </section>`;
+  const baseTitle = k => k === 'main' ? 'Base operativa' : CFG.bases.find(d => d.kind === k).label;
+  const artCard = a => {
+    const st = artifactState(a), at = S.artAt[a.id];
+    const activeLeft = { pilots: S.fx.pilotUntil, tech: S.fx.techUntil, recall: S.fx.recallUntil, monument: S.fx.monumentUntil, flight: S.fx.flight && S.fx.flight.until }[a.id] - S.t;
+    const act = activeLeft > 0 ? `<span class="note ok-text">Attivo, ancora ${fmtDur(activeLeft)}${a.id === 'pilots' ? `, ${S.fx.pilotLeft} bonus da assegnare ai caccia` : ''}</span>` : '';
+    return `<div class="art${activeLeft > 0 ? ' on' : ''}">
+      <div class="art-head"><b>${a.name}</b><button class="btn ${st.why ? 'ghost' : ''}" data-action="artifact" data-a="${a.id}" ${st.why || S.pending ? 'disabled' : ''}>Attiva (${CFG.artifactCost} cr, ${CFG.artifactResearch}%)</button></div>
+      <span class="note">${a.desc}</span>${act}
+      ${st.why ? `<span class="note warn-text">${st.why}</span>` : ''}
+    </div>`;
+  };
+  const nextDef = CFG.bases[S.extra.length];
+  const ownedBlocks = S.extra.map(b => {
+    const def = CFG.bases.find(d => d.kind === b.kind);
+    let info = '';
+    if (b.kind === 'research') info = `Ogni minaccia abbattuta in volo +${CFG.researchKill[0]}-${CFG.researchKill[1]}%, ogni bombardamento +${CFG.researchBomb}%, ogni missione tattica (non di addestramento) +${CFG.researchTactical}%. Ogni attivazione di artefatto consuma ${CFG.artifactResearch}% di ricerca; si può superare il 100%.`;
+    if (b.kind === 'major') info = `Una medaglia al giorno a mezzanotte se la reputazione è al 100%; reputazione +${CFG.majorRepBonus}% ottenuta all'acquisto.`;
+    return `<section class="block basebox">
+      <h2>${def.label} <span class="count">${b.site.name}</span></h2>
+      <p class="note">${b.site.zone}, ${b.site.state}, ${b.site.cont}. ${info}</p>
+      ${ARTIFACTS.filter(a => a.base === b.kind).map(artCard).join('')}
+    </section>`;
+  }).join('');
+  const buyBlock = S.pending ? (() => {
+    const def = CFG.bases.find(d => d.kind === S.pending.kind);
+    return `<section class="block"><h2>${def.label}: scegli la località</h2>
+      <p class="note">Il tempo è fermo. Costo ${def.cost} crediti, addebitati alla scelta. Clicca una località sulla mappa o nell'elenco.</p>
+      <ul class="sites">${S.pending.sites.map((x, i) => `
+        <li class="${S.hoverSite === i ? 'hover' : ''}" data-hover="${i}">
+          <div><div class="name">${x.name}</div><div class="meta">${x.zone}, ${x.state}, ${x.cont}</div></div>
+          <button class="btn" data-action="pickSecondary" data-a="${i}">Costruisci qui</button>
+        </li>`).join('')}</ul>
+      <div class="buyrow"><button class="btn ghost" data-action="cancelBase">Annulla</button></div></section>`;
+  })() : `<section class="block">
+      <h2>Basi <span class="count">${1 + S.extra.length}/${1 + CFG.bases.length}</span></h2>
+      <p class="note"><b>Base operativa:</b> ${S.base.name}. Aerei e hangar restano qui; le basi secondarie danno ricerca, artefatti e bonus. Si acquistano in ordine e per ognuna scegli tra 10 località casuali.</p>
+      ${S.extra.length ? `<div class="rankbox"><b>Ricerca: ${Math.round(S.research)}%</b> · attivazioni disponibili: ${researchCharges()}
+        <div class="bar"><i style="width:${Math.min(100, (S.research % CFG.artifactResearch) / CFG.artifactResearch * 100)}%"></i></div></div>` : ''}
+      ${CFG.bases.map((d, i) => i < S.extra.length ? `<div class="baseline owned"><b>${d.label}</b> <span class="note">${d.short} · ${S.extra[i].site.name}</span></div>`
+        : d === nextDef ? `<div class="baseline"><b>${d.label}</b> <span class="note">${d.short}</span>
+            <button class="btn" data-action="buyBase" data-a="${d.kind}" ${S.credits < d.cost ? 'disabled' : ''}>Acquista (${d.cost.toLocaleString('it-IT')} crediti)</button></div>`
+        : `<div class="baseline locked"><b>${d.label}</b> <span class="note">${d.short} · ${d.cost.toLocaleString('it-IT')} crediti, dopo la ${CFG.bases[i - 1].label.toLowerCase()}</span></div>`).join('')}
+    </section>`;
+  const secBases = buyBlock + (S.pending ? '' : ownedBlocks);
   const alert = S.threats.some(t => t.state === 'hunting' || t.state === 'cooldown');
   const tabs = [
     ['minacce', 'Minacce', S.threats.length, alert],
     ['flotta', 'Flotta', fighters.length + strikers.length, false],
     ['logistica', 'Logistica', 0, false],
+    ['basi', 'Basi', researchCharges() && S.extra.length ? researchCharges() : 0, false],
     ['missione', 'Missione', 0, false],
   ];
-  const body = { minacce: secThreats, flotta: secFighters + secStrike, logistica: loanBlock() + secSupport, missione: secBase }[panelTab] || secThreats;
+  if (S.pending) panelTab = 'basi';
+  const body = { minacce: secThreats, flotta: secFighters + secStrike, logistica: loanBlock() + secSupport, basi: secBases, missione: secBase }[panelTab] || secThreats;
   panel.innerHTML = `<nav class="tabs" role="tablist" aria-label="Sezioni">${tabs.map(([k, label, n, hot]) =>
     `<button role="tab" data-action="tab" data-a="${k}" aria-selected="${k === panelTab}">${label}${n ? `<span class="badge ${hot ? 'hot' : ''}">${n}</span>` : ''}</button>`).join('')}</nav>${body}`;
   renderLog();
@@ -1348,7 +1649,7 @@ document.getElementById('speeds').addEventListener('click', e => {
 });
 panel.addEventListener('mouseover', e => {
   const li = e.target.closest('[data-hover]');
-  if (S && !S.base) S.hoverSite = li ? +li.dataset.hover : null;
+  if (S && (!S.base || S.pending)) S.hoverSite = li ? +li.dataset.hover : null;
 });
 
 // ---------- Scorciatoie da tastiera ----------
@@ -1366,7 +1667,7 @@ document.addEventListener('keydown', e => {
   const k = e.key;
   if (modal.classList.contains('open')) { if (k === 'Escape' && !S.over) closeModal(); return; }
   if (k === '?' || k === 'h' || k === 'H') { helpModal(); return; }
-  if (!S.base || S.over) return;
+  if (!S.base || S.over || S.pending) return;
   let handled = true;
   if (k === ' ') {
     if (e.target.closest && e.target.closest('button')) return; // lo spazio attiva il pulsante col focus

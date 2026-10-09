@@ -1070,11 +1070,11 @@ function gameOver(title, text) {
 const canvas = document.getElementById('map'), ctx = canvas.getContext('2d');
 const tooltip = document.getElementById('tooltip');
 let W = 0, H = 0, colors = {};
-// pattuglie in giallo, caccia danneggiati in rientro in grigio
-const planeColor = p => p.patrolId && p.state === 'flight' ? colors.patrol : p.damaged && p.state === 'rtb' ? colors.damaged : colors[TYPES[p.type].color];
+// pattuglie in giallo, caccia danneggiati in rientro in grigio, caccia in rientro in verde
+const planeColor = p => p.patrolId && p.state === 'flight' ? colors.patrol : p.damaged && p.state === 'rtb' ? colors.damaged : p.type === 'fighter' && p.state === 'rtb' ? colors.ok : colors[TYPES[p.type].color];
 function readColors() {
   const cs = getComputedStyle(document.documentElement);
-  for (const k of ['ocean', 'ocean-hi', 'land', 'coast', 'grid', 'ink', 'ink-soft', 'base', 'threat', 'fighter', 'bomber', 'tactical', 'panel', 'patrol', 'damaged', 'missile']) colors[k] = cs.getPropertyValue('--' + k).trim();
+  for (const k of ['ocean', 'ocean-hi', 'land', 'coast', 'grid', 'ink', 'ink-soft', 'base', 'threat', 'fighter', 'bomber', 'tactical', 'panel', 'patrol', 'damaged', 'missile', 'ok']) colors[k] = cs.getPropertyValue('--' + k).trim();
 }
 function resize() {
   const wrap = canvas.parentElement;

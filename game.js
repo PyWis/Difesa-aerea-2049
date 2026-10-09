@@ -60,8 +60,8 @@ const CFG = {
   repairMin: 1440,          // bombardiere/tattico abbattuto: di nuovo disponibile dopo 1 giorno
   emergencyAmount: 2500,    // prestito fornitori di emergenza, automatico se i crediti vanno sotto zero
   emergencyInstallment: 800, emergencyInstallments: 4,
-  loanAmount: 500,          // prestito ONU
-  loanInstallment: 200,     // rata pagata a ogni mezzanotte
+  loanAmount: 5000,         // prestito ONU
+  loanInstallment: 2000,    // rata pagata a ogni mezzanotte
   loanInstallments: 3,      // numero di rate
   loanMax: 2, loanWindowDays: 7, // massimo 2 prestiti in 7 giorni
   sites: 10, minContinents: 4,

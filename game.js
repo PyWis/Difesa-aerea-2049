@@ -94,7 +94,7 @@ const CFG = {
     monumentDays: 3, monumentUp: 50, monumentDown: 20,
   },
   // dichiarazione di emergenza: solo su richiesta, mai automatica
-  declaration: { days: 5, perDay: 2000, repCost: 10, maxCredits: 1000 },
+  declaration: { days: 5, perDay: 2000, repPerDay: 10, maxCredits: 1000 },
   majorRepBonus: 10,        // base maggiore: reputazione guadagnata all'acquisto
 };
 const R_EARTH = 6371;
@@ -240,15 +240,15 @@ function bankrupt(why) {
   gameOver('Bancarotta', `I crediti sono finiti${why ? ' (' + why.toLowerCase() + ')' : ''}: il prestito di emergenza è ancora da restituire e non è possibile chiedere altri prestiti ONU.`);
 }
 // ---------- Dichiarazione di emergenza ----------
-// ogni "rata": +perDay crediti e −repCost/days di reputazione; la prima subito, le altre a mezzanotte
-const declStep = () => (CFG.declaration.repCost / CFG.declaration.days);
+// ogni versamento: +perDay crediti e −repPerDay di reputazione; la prima subito, le altre a mezzanotte
+const declStep = () => CFG.declaration.repPerDay;
 const canDeclare = () => !S.decl && !S.over && S.credits < CFG.declaration.maxCredits;
 function offerDeclaration(why) {
   if (S.askBankrupt) return;
   S.askBankrupt = true; S.resumeSpeedB = S.speed; S.speed = 0; S.bankruptWhy = why;
   const d = CFG.declaration;
   openModal(`<h2>Crediti esauriti</h2>
-    <p>Sei in bancarotta. Puoi dichiarare lo <b>stato di emergenza</b>: per ${d.days} giorni ricevi ${d.perDay} crediti al giorno (il primo subito, gli altri a mezzanotte), al costo del ${d.repCost}% di reputazione in totale (${declStep()}% a ogni versamento). Se anche così i crediti restano negativi, la partita finisce.</p>
+    <p>Sei in bancarotta. Puoi dichiarare lo <b>stato di emergenza</b>: per ${d.days} giorni ricevi ${d.perDay} crediti al giorno (il primo subito, gli altri a mezzanotte), al costo del ${d.repPerDay}% di reputazione a ogni versamento (${d.repPerDay * d.days}% in totale). Se anche così i crediti restano negativi, la partita finisce.</p>
     <button class="btn" data-action="declare">Dichiara l'emergenza</button>
     <button class="btn ghost" data-action="acceptBankrupt">Accetta la bancarotta</button>`);
 }
@@ -447,7 +447,7 @@ const A = {
     S.decl = { left: d.days };
     S.askBankrupt = false; closeModal();
     if (wasAsked) S.speed = S.resumeSpeedB || 0;
-    addLog(`Dichiarazione di emergenza: ${d.days} versamenti da ${d.perDay} crediti, reputazione −${d.repCost}% in totale.`, 'bad');
+    addLog(`Dichiarazione di emergenza: ${d.days} versamenti da ${d.perDay} crediti, reputazione −${d.repPerDay}% a versamento (${d.repPerDay * d.days}% in totale).`, 'bad');
     declPay();
     if (!S.over && S.credits < 0) bankrupt(S.bankruptWhy);
   },
@@ -1519,7 +1519,7 @@ function loanBlock() {
   const declBlock = `<section class="block">
     <h2>Dichiarazione di emergenza ${S.decl ? `<span class="count">attiva, ${S.decl.left} versamenti</span>` : ''}</h2>
     <button class="btn ${S.credits < 300 ? '' : 'ghost'}" data-action="declare" ${canDeclare() ? '' : 'disabled'}>Dichiara l'emergenza</button>
-    <p class="note">Ricevi ${dc.perDay} crediti al giorno per ${dc.days} giorni (il primo subito, poi a mezzanotte), al costo del ${dc.repCost}% di reputazione in totale (${declStep()}% per versamento). Non scatta mai da sola: è un'opzione per evitare la bancarotta, attivabile con meno di ${dc.maxCredits} crediti e una volta alla volta; quando i crediti finiscono ti verrà proposta.${S.decl ? `<br><b>In corso: ${S.decl.left} versamenti ancora da ricevere.</b>` : ''}</p>
+    <p class="note">Ricevi ${dc.perDay} crediti al giorno per ${dc.days} giorni (il primo subito, poi a mezzanotte), al costo del ${dc.repPerDay}% di reputazione a ogni versamento (${dc.repPerDay * dc.days}% in totale). Non scatta mai da sola: è un'opzione per evitare la bancarotta, attivabile con meno di ${dc.maxCredits} crediti e una volta alla volta; quando i crediti finiscono ti verrà proposta.${S.decl ? `<br><b>In corso: ${S.decl.left} versamenti ancora da ricevere.</b>` : ''}</p>
   </section>`;
   return declBlock + `<section class="block loan">
     <h2>Prestito ONU <span class="count">${avail} di ${CFG.loanMax} disponibili</span></h2>

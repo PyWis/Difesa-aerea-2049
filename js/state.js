@@ -20,6 +20,7 @@ function newGame() {
     fx: newFx(), launch: [], pilotsSpace: 0, apocDone: 0,
     ops: { at: {}, boosts: [] },
     selectedThreat: null, hoverSite: null, over: false, prevSpeed: 900, turboLeft: 0,
+    barracks: { seats: CFG.pilots.barracks.start, admSeats: 0 },
     patrols: [], kills: 0, medals: 0, slots: { fighter: TYPES.fighter.max, bomber: TYPES.bomber.max },
   };
   closeModal();

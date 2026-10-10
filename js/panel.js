@@ -278,7 +278,7 @@ function renderPanelBody() {
   <section class="block">
     <h2>Caserma <span class="count">${readyPilots.length} piloti</span>
       <button class="btn ghost" data-action="barracks">Apri la caserma</button></h2>
-    <p class="note">${freePilots} piloti liberi, ${S.pilots.length - readyPilots.length} in accademia, ${S.pilotsLost || 0} caduti${S.pilotsSpace ? `, ${S.pilotsSpace} in missione spaziale` : ''}${admirals ? `. Ammiragli di Volo (punteggio extra): ${admirals}` : ''}. Ogni giorno arriva un cadetto; ogni ${CFG.freeMissionGroup} piloti liberi dello stesso grado, uno a caso riceve una missione premio al giorno. Assegna i piloti agli aerei per bonus negli scontri e in velocità (tasto <kbd>C</kbd>).</p>
+    <p class="note">${freePilots} piloti liberi, ${S.pilots.length - readyPilots.length} in accademia, ${S.pilotsLost || 0} caduti${S.pilotsSpace ? `, ${S.pilotsSpace} in missione spaziale` : ''}${admirals ? `. Ammiragli di Volo (punteggio extra): ${admirals}` : ''}. Posti in caserma: ${seatsUsed()}/${S.barracks.seats}. Ogni giorno arriva un cadetto (se c'è posto); ogni ${CFG.freeMissionGroup} piloti liberi dello stesso grado, uno a caso riceve una missione premio al giorno. Assegna i piloti agli aerei per bonus negli scontri e in velocità (tasto <kbd>C</kbd>).</p>
   </section>`;
   const secFighters = `
   <section class="block">

@@ -93,6 +93,10 @@ function crewOptions(p, slot) {
 function barracksHtml() {
   const ready = S.pilots.filter(pl => !inAcademy(pl)), cadets = S.pilots.filter(inAcademy);
   const free = freePilotsOf(() => true).length, admirals = ready.filter(isAdmiral).length;
+  const nx = nextSeat(), bc = barCfg(), as = S.barracks.admSeats, fmt = n => n.toLocaleString('it-IT');
+  const seatsBox = `<div class="buyrow"><p class="note"><b>Posti: ${seatsUsed()}/${S.barracks.seats}</b>${barracksFull() ? ' · caserma al completo: i cadetti non arrivano' : ''} · posti Ammiragli di Volo: ${Math.min(admirals, as)}/${as} (max ${bc.admiralSeats}).</p>
+      ${nx ? `<button class="btn ghost" data-action="buySeat" ${S.credits < nx.cost ? 'disabled' : ''}>Acquista un posto (${fmt(nx.cost)} crediti, fino a ${bc.tiers.find(t => S.barracks.seats < t.upTo).upTo})</button>` : '<span class="note">Posti ordinari al massimo.</span>'}
+      ${as < bc.admiralSeats ? `<button class="btn ghost" data-action="buyAdmiralSeat" ${S.credits < bc.admiralCost ? 'disabled' : ''}>Posto da Ammiraglio di Volo (${fmt(bc.admiralCost)} crediti)</button>` : ''}</div>`;
   const crewRows = planesByType().map(p => {
     const air = isAir(p), bonus = [crewWin(p) && `+${Math.round(crewWin(p) * 100)}% scontri`, crewStrikeSpeed(p) && `+${crewStrikeSpeed(p)} km/h`].filter(Boolean).join(' · ');
     const sel = slot => `<label>${SLOT_NAME[slot]} <span class="note">(da ${PR()[slotMin(p, slot)].name})</span>
@@ -107,7 +111,8 @@ function barracksHtml() {
   }).join('');
   const ranksHelp = PR().map((r, i) => `<tr><td><b>${r.name}</b></td><td>${rankRoles(i)}${rankBonus(r) ? `<br>${rankBonus(r)}` : ''}</td><td>${r.final ? (r.noFly ? 'si ottiene con la Missione venusiana ONU' : 'grado massimo in volo') : promoText(r)}</td></tr>`).join('');
   return `<h2>Caserma</h2>
-    <p class="note">${ready.length} piloti in servizio (${free} liberi), ${cadets.length} in accademia, ${S.pilotsLost || 0} caduti${S.pilotsSpace ? `, ${S.pilotsSpace} in missione spaziale` : ''}${admirals ? `. Ammiragli di Volo (punteggio extra): ${admirals}` : ''}. Un nuovo cadetto arriva a mezzanotte (tra ${fmtDur(minutesToMidnight(S.t))}). Il tempo è fermo finché la finestra è aperta.</p>
+    <p class="note">${ready.length} piloti in servizio (${free} liberi), ${cadets.length} in accademia, ${S.pilotsLost || 0} caduti${S.pilotsSpace ? `, ${S.pilotsSpace} in missione spaziale` : ''}${admirals ? `. Ammiragli di Volo (punteggio extra): ${admirals}` : ''}. ${barracksFull() ? 'Caserma al completo: nessun cadetto in arrivo' : `Un nuovo cadetto arriva a mezzanotte (tra ${fmtDur(minutesToMidnight(S.t))})`}. Il tempo è fermo finché la finestra è aperta.</p>
+    ${seatsBox}
     <h3>Equipaggi</h3>
     <p class="note">Un aereo decolla solo con 1° e 2° pilota assegnati. I bonus dei piloti a bordo si sommano${CFG.pilots.deathOnLoss ? '. Se l\'aereo va perso, l\'equipaggio cade con lui' : ''}. L'equipaggio si cambia solo a terra.</p>
     <div class="crew">${crewRows}</div>

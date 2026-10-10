@@ -32,6 +32,7 @@ function loadSave(d) {
   // salvataggi precedenti alle minacce speciali
   S.fx = Object.assign(newFx(), S.fx);
   S.launch = S.launch || []; S.pilotsSpace = S.pilotsSpace || 0; S.apocDone = S.apocDone || 0; S.ids.X = S.ids.X || 0;
+  S.barracks = S.barracks || { seats: CFG.pilots.barracks.start, admSeats: 0 };
   if (!S.pilots) { S.pilots = []; S.pilotsLost = 0; S.ids.PL = 0; initPilots(); A.autoCrew(); } // salvataggi precedenti alla caserma
   closeModal();
   addLog('Partita ripresa dall\'ultimo salvataggio (in pausa).', 'good');

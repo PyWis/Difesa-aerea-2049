@@ -55,8 +55,11 @@ function step(dt) {
       addMedal(1);
       if (S.over) return;
     }
+    arriveCadets();
     S.autosave = true; // il ciclo principale salva la partita a fine passo
   }
+
+  tickPilots();
 
   // effetti degli artefatti
   const fx = S.fx;
@@ -297,6 +300,7 @@ function step(dt) {
       addLog(`${p.id} è rientrato alla base${p.damaged ? ' ed è di nuovo impiegabile' : ''}.`);
       p.damaged = false; p.fast = false;
       applyBonus(p);
+      pilotsLand(p);
       if (p.type === 'fighter' && fighterRecon()) { holdFighter(p); addLog(`${p.id}: usato come ricognitore, resta fermo alla base per ${CFG.ops.fighters.holdH} ore.`); }
     } else moveTo(p, S.base, pkm);
   }
@@ -352,7 +356,7 @@ function chase(f, th, km, remaining) {
       addLog(`${ms.map(m => m.id).join(', ')} rientrano a velocità ×${CFG.patrolReturnSpeed}, ma non possono intercettare altro fino all'atterraggio.`, 'good');
       return;
     }
-    if (th.training || Math.random() < winCh()) {
+    if (th.training || Math.random() < winCh(f)) {
       killThreat(th, `${f.id} ha abbattuto ${th.id}!`);
       earnWin(f);
       if (f.state === 'escort') { f.engaged = null; f.aim = null; addLog(`${f.id} torna a scortare ${f.escort}.`); }
@@ -375,10 +379,10 @@ function chase(f, th, km, remaining) {
 function ambush(th, prey) {
   const escorts = S.planes.filter(e => e.state === 'escort' && e.escort === prey.id && dist(e, prey) < 150);
   for (const e of escorts) {
-    if (Math.random() < winCh()) { killThreat(th, `${e.id} difende ${prey.id} e abbatte ${th.id}!`); earnWin(e); return; }
+    if (Math.random() < winCh(e)) { killThreat(th, `${e.id} difende ${prey.id} e abbatte ${th.id}!`); earnWin(e); return; }
     shotDown(e, `${e.id} è stato abbattuto da ${th.id} mentre difendeva ${prey.id}.`);
   }
-  if (Math.random() < CFG.strikeDefense) { killThreat(th, `${prey.id} si è difeso da solo e ha abbattuto ${th.id}!`); return; }
+  if (Math.random() < Math.min(CFG.pilots.maxWin, CFG.strikeDefense + crewWin(prey))) { killThreat(th, `${prey.id} si è difeso da solo e ha abbattuto ${th.id}!`); return; }
   shotDown(prey, `${prey.id} è stato abbattuto da ${th.id}.`);
   th.state = 'flight'; th.prey = null;
 }

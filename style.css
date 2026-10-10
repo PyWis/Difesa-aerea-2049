@@ -390,3 +390,19 @@ details.help .note { margin: 0; padding: 0 10px 10px; }
 .board td .note { margin: 0; }
 .board tr.me { background: color-mix(in srgb, var(--base) 16%, transparent); }
 .credits small.debt, .credits.low small { color: var(--threat); }
+
+/* caserma */
+.iconbtn.wide { width: auto; border-radius: 17px; padding: 0 12px; font-size: 0.85rem; }
+.modal .card.wide { width: min(900px, 100%); max-width: 900px; }
+.crew { display: grid; gap: 8px; margin: 8px 0 10px; }
+.crewrow { border: 1px solid var(--panel-line); border-left: 3px solid var(--fighter); border-radius: 6px; padding: 8px 10px; }
+.crewrow.air { opacity: .6; border-left-style: dashed; }
+.crewhead { margin-bottom: 4px; }
+.crewsel { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+.crewsel label { margin: 0; }
+.crewsel select { font-size: 0.85rem; }
+.tablewrap { max-height: 260px; overflow-y: auto; border: 1px solid var(--panel-line); border-radius: 6px; margin: 6px 0 10px; }
+.board.roster tr.cadet td { color: var(--ink-soft); }
+.modal details.help { margin: 8px 0; }
+.modal details.help .tablewrap { max-height: none; }
+@media (max-width: 640px) { .crewsel { grid-template-columns: 1fr; } }

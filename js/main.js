@@ -37,6 +37,7 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', rea
       worldRows = parseCSV(await e.target.files[0].text()); res();
     }));
   }
+  await loadNames();
   BASES = worldRows.map(r => ({ name: r.Citta_riferimento, state: r.Stato, lat: parseFloat(r.Lat_citta), lon: parseFloat(r.Lon_citta) }));
   newGame();
   const save = readSave();

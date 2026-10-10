@@ -6,7 +6,7 @@ function helpModal() {
   openModal(`<h2>Scorciatoie e gradi</h2>
     <p><kbd>Spazio</kbd> pausa / riprendi · <kbd>1</kbd>-<kbd>7</kbd> velocità (pausa, tempo reale, 1, 2, 5, 15 min/s, 1 ora/s)<br>
     <kbd>T</kbd> minaccia successiva · <kbd>Esc</kbd> deseleziona · <kbd>I</kbd> intercetta la minaccia selezionata col caccia più veloce<br>
-    <kbd>B</kbd> bombardiere / <kbd>A</kbd> aereo tattico contro la minaccia selezionata a terra · <kbd>?</kbd> questo aiuto</p>
+    <kbd>B</kbd> bombardiere / <kbd>A</kbd> aereo tattico contro la minaccia selezionata a terra · <kbd>C</kbd> caserma · <kbd>?</kbd> questo aiuto</p>
     <p>${RANKS.map(r => `<b>${r.name}</b> ${r.at}`).join(' · ')}</p>
     <button class="btn" data-action="closeModal">Chiudi</button>`);
 }
@@ -22,6 +22,7 @@ document.addEventListener('keydown', e => {
     if (S.speed > 0) { S.prevSpeed = S.speed; A.speed(0); } else A.speed(S.prevSpeed > 0 && S.prevSpeed !== CFG.turboSpeed ? S.prevSpeed : 60);
   } else if (SPEED_KEYS[k] !== undefined) A.speed(SPEED_KEYS[k]);
   else if (k === 'Escape') { S.selectedThreat = null; }
+  else if (k === 'c' || k === 'C') A.barracks();
   else if (k === 't' || k === 'T') {
     const ids = S.threats.map(t => t.id);
     if (ids.length) S.selectedThreat = ids[(ids.indexOf(S.selectedThreat) + 1) % ids.length];
@@ -38,9 +39,18 @@ document.addEventListener('keydown', e => {
 // ---------- Modale ----------
 const modal = document.getElementById('modal');
 // locked: la finestra non si chiude con Esc (profilo, fine partita, avviso di debito)
-let modalLocked = false, modalBack = null;
-function openModal(html, locked = false) { document.getElementById('modalCard').innerHTML = html; modalLocked = locked; modal.classList.add('open'); }
-function closeModal() { modal.classList.remove('open'); modalLocked = false; modalBack = null; }
+let modalLocked = false, modalBack = null, modalOnClose = null;
+// wide: finestra larga (caserma); onClose: chiamata solo alla chiusura vera, non quando un'altra finestra la sostituisce
+function openModal(html, locked = false, onClose = null, wide = false) {
+  const card = document.getElementById('modalCard');
+  card.innerHTML = html; card.classList.toggle('wide', wide);
+  modalLocked = locked; modalOnClose = onClose; modal.classList.add('open');
+}
+function closeModal() {
+  const cb = modalOnClose;
+  modal.classList.remove('open'); modalLocked = false; modalBack = null; modalOnClose = null;
+  if (cb) cb();
+}
 
 // ---------- Avvio: menu, profilo del comandante, classifica ----------
 const PROFILE_KEY = 'difesa-aerea-2049.profilo';

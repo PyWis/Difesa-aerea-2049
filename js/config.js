@@ -93,6 +93,28 @@ const CFG = {
   },
   // dichiarazione di emergenza: solo su richiesta, mai automatica
   declaration: { days: 5, perDay: 2000, repPerDay: 10, maxCredits: 1000 },
+  // caserma: piloti, accademia, gradi ed equipaggi
+  pilots: {
+    startSergeants: 10, startMarshals: 10,   // piloti disponibili a inizio partita
+    cadetsPerDay: 1,                          // nuovi cadetti a ogni mezzanotte
+    deathOnLoss: true,                        // un aereo perso (abbattuto o senza carburante) porta con sé l'equipaggio
+    maxWin: 0.95,                             // tetto della probabilità di vittoria con i bonus dei piloti
+    patrolCaptainSpeed: 0.25,                 // pattuglia comandata da un Capitano di Volo: velocità +25% a tutti
+    // grado minimo per ogni posto: 1° pilota (comandante) e 2° pilota
+    slotMinRank: { fighter: { first: 5, second: 2 }, bomber: { first: 6, second: 4 }, tactical: { first: 6, second: 4 } },
+    // academyDays: giorni in accademia; days/missions: giorni e missioni nel grado per la promozione;
+    // win: bonus alla probabilità di vincere uno scontro; strikeSpeed: km/h in più su bombardieri e tattici
+    ranks: [
+      { name: 'Cadetto',              short: 'Cdt.',     academyDays: 3 },
+      { name: 'Cadetto scelto',       short: 'Cdt. sc.', academyDays: 2 },
+      { name: 'Sergente',             short: 'Sgt.',     days: 2, missions: 3 },
+      { name: 'Sergente Scelto',      short: 'Sgt. sc.', days: 4, missions: 7,  win: 0.03 },
+      { name: 'Sergente Capo',        short: 'Sgt. C.',  days: 7, missions: 10, win: 0.05 },
+      { name: 'Maresciallo di Volo',  short: 'Mar.',     missions: 20, win: 0.10, strikeSpeed: 200 },
+      { name: 'Luogotenente di Volo', short: 'Ltn.',     missions: 50, win: 0.10, strikeSpeed: 200 },
+      { name: 'Capitano di Volo',     short: 'Cap.',     win: 0.10, strikeSpeed: 200, captain: true },
+    ],
+  },
   // debito: la bancarotta scatta oltre -limit crediti oppure dopo `hours` ore di gioco consecutive in negativo
   debt: { limit: 250, hours: 6 },
   // operazioni speciali (scheda Logistica)

@@ -3,14 +3,15 @@
 // ---------- Stato ----------
 let S, worldRows = [], BASES = [];
 const thSpeed = () => CFG.threatSpeed * (1 + CFG.diffSpeed * rankIdx(S.medals));
-const winCh = () => Math.max(0.5, CFG.winChance - CFG.diffWin * rankIdx(S.medals));
+// probabilità di vincere uno scontro; con un aereo p si sommano i bonus dei suoi piloti
+const winCh = p => Math.min(CFG.pilots.maxWin, Math.max(0.5, CFG.winChance - CFG.diffWin * rankIdx(S.medals)) + (p ? crewWin(p) : 0));
 const atkCh = () => CFG.attackChance + CFG.diffAttack * rankIdx(S.medals);
 function newGame() {
   S = {
     credits: CFG.startCredits, rep: CFG.startRep, t: 0, speed: 0, base: null,
     sites: pickSites(worldRows),
     support: { recon: 0, tanker: 0, signals: 0, lock: { recon: 0, tanker: 0 } }, planes: [], threats: [], log: [], loans: [], emergency: [],
-    ids: { P: 0, R: 0, C: 0, B: 0, A: 0, T: 0, M: 0, L: 0, E: 0, K: 0, D: 0 }, trainings: [], trainDone: 0,
+    ids: { P: 0, R: 0, C: 0, B: 0, A: 0, T: 0, M: 0, L: 0, E: 0, K: 0, D: 0, PL: 0 }, pilots: [], pilotsLost: 0, trainings: [], trainDone: 0,
     decl: null, askBankrupt: false, debtSince: null, debtAlerted: false, autosave: false, profile: null,
     extra: [], research: 0, artAt: {}, missiles: [], pending: null,
     fx: { recallUntil: 0, recallBase: null, pilotUntil: 0, pilotLeft: 0, techUntil: 0, flight: null, monumentUntil: 0, repLater: [] },
@@ -116,9 +117,9 @@ function maxOf(type) {
   if (type === 'tactical') return TYPES.tactical.max + (planesOf('bomber').length >= CFG.tacticalBonusAtBombers ? 1 : 0);
   return S.slots[type];
 }
-// velocità effettiva: motore sonico ×2, caccia salvato dalla difesa jet ×0,5
+// velocità effettiva: motore sonico ×2, caccia salvato dalla difesa jet ×0,5, equipaggio e capitano di pattuglia
 const techOn = () => S.t < S.fx.techUntil;
-const spd = p => (p.speed + (techOn() ? CFG.art.techBonus : 0)) * (S.t < (p.sonicUntil || 0) ? 2 : 1) * (p.damaged ? 0.5 : 1) * (p.joining ? CFG.patrolJoinSpeed : 1) * (p.fast ? CFG.patrolReturnSpeed : 1);
+const spd = p => (p.speed + (techOn() ? CFG.art.techBonus : 0) + crewStrikeSpeed(p)) * (S.t < (p.sonicUntil || 0) ? 2 : 1) * (p.damaged ? 0.5 : 1) * (p.joining ? CFG.patrolJoinSpeed : 1) * (p.fast ? CFG.patrolReturnSpeed : 1) * patrolSpeedMult(p);
 const repMult = rep => (CFG.repRecovery.find(r => rep < r.below) || { mult: 1 }).mult;
 const findPlane = id => S.planes.find(p => p.id === id);
 const findThreat = id => S.threats.find(t => t.id === id);

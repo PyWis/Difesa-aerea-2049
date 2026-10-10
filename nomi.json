@@ -1,0 +1,350 @@
+{
+ "versione": 1,
+ "descrizione": "Nomi e cognomi possibili dei piloti per nazionalità (stati di mondo.csv). Ogni pilota estrae un nome e un cognome a caso dalla tabella della sua nazionalità.",
+ "nazionalita": {
+  "Afghanistan": {
+   "nomi": ["Ahmad", "Zarina", "Farid", "Mariam", "Nasir", "Laila", "Javid", "Shabnam", "Rahim", "Parwana", "Sultan", "Freshta", "Hamid", "Soraya"],
+   "cognomi": ["Ahmadzai", "Karimi", "Noori", "Safi", "Popal", "Rahmani", "Sharifi", "Wardak", "Yusufi", "Stanikzai", "Barakzai", "Mohmand", "Faizi", "Amini"]
+  },
+  "Algeria": {
+   "nomi": ["Ahmed", "Mona", "Hassan", "Salma", "Karim", "Yasmin", "Youssef", "Nadia", "Mahmoud", "Amira", "Slim", "Leila", "Mehdi", "Samira"],
+   "cognomi": ["Hassan", "Mahmoud", "Ibrahim", "El-Sayed", "Benali", "Bouzid", "Haddad", "Mansouri", "Trabelsi", "Ben Salah", "Amrani", "Alaoui", "Cherif", "Belkacem"]
+  },
+  "Angola": {
+   "nomi": ["Manuel", "Ana", "Domingos", "Isabel", "António", "Luzia", "Joaquim", "Maria", "Paulo", "Esperança", "Fernando", "Teresa", "Adão", "Neusa"],
+   "cognomi": ["dos Santos", "da Silva", "Fernandes", "Pereira", "Gomes", "Mendes", "Lopes", "Baptista", "Neto", "Kiala", "Manuel", "Francisco", "Cardoso", "Tavares"]
+  },
+  "Ansa del Niger": {
+   "nomi": ["Abdou", "Aïcha", "Harouna", "Zeinabou", "Moussa", "Rakia", "Ibrahim", "Hadiza", "Souleymane", "Mariama", "Adamou", "Fati", "Boubacar", "Salamatou"],
+   "cognomi": ["Abdou", "Moussa", "Issa", "Oumarou", "Souley", "Hamidou", "Garba", "Maman", "Adamou", "Idrissa", "Harouna", "Illiassou", "Amadou", "Tahirou"]
+  },
+  "Arabia Saudita": {
+   "nomi": ["Abdullah", "Fatima", "Mohammed", "Aisha", "Faisal", "Mariam", "Sultan", "Noura", "Rashid", "Latifa", "Salem", "Hessa", "Saeed", "Amal"],
+   "cognomi": ["Al-Otaibi", "Al-Qahtani", "Al-Ghamdi", "Al-Maktoum", "Al-Nahyan", "Al-Mansoori", "Al-Shamsi", "Al-Zahrani", "Al-Harbi", "Al-Dosari", "Al-Hashimi", "Al-Yamani", "Al-Sanani", "Al-Shehri"]
+  },
+  "Arco dei Balcani": {
+   "nomi": ["Nikos", "Eleni", "Giorgos", "Katerina", "Dimitris", "Ioanna", "Marko", "Ana", "Nikola", "Ivana", "Stefan", "Milica", "Luka", "Jelena"],
+   "cognomi": ["Papadopoulos", "Georgiou", "Dimitriou", "Nikolaidis", "Karagiannis", "Vlachos", "Horvat", "Kovačević", "Jovanović", "Petrović", "Marković", "Popović", "Đorđević", "Stoyanov"]
+  },
+  "Argentina": {
+   "nomi": ["Martín", "Sofía", "Facundo", "Lucía", "Nicolás", "Agustina", "Santiago", "Camila", "Tomás", "Julieta", "Matías", "Florencia", "Joaquín", "Milagros"],
+   "cognomi": ["González", "Rodríguez", "Gómez", "Fernández", "López", "Díaz", "Martínez", "Pérez", "Romero", "Sosa", "Álvarez", "Torres", "Acosta", "Benítez"]
+  },
+  "Azerbaigian": {
+   "nomi": ["Elchin", "Aysel", "Rashad", "Leyla", "Farid", "Nigar", "Tural", "Gunel", "Orkhan", "Sevinj", "Vugar", "Aynur", "Kamran", "Nargiz"],
+   "cognomi": ["Mammadov", "Aliyev", "Hasanov", "Huseynov", "Ismayilov", "Guliyev", "Abbasov", "Rzayev", "Mirzayev", "Karimov", "Najafov", "Safarov", "Jafarov", "Valiyev"]
+  },
+  "Bangladesh": {
+   "nomi": ["Rahim", "Nusrat", "Karim", "Farhana", "Tanvir", "Sharmin", "Imran", "Ritu", "Sajib", "Mim", "Nasir", "Taslima", "Mizanur", "Rokeya"],
+   "cognomi": ["Rahman", "Hossain", "Islam", "Ahmed", "Chowdhury", "Uddin", "Khan", "Miah", "Sarker", "Siddique", "Akter", "Mondal", "Talukder", "Bhuiyan"]
+  },
+  "Benelux": {
+   "nomi": ["Daan", "Sanne", "Bram", "Femke", "Joost", "Lotte", "Thijs", "Anouk", "Ruben", "Fleur", "Pieter", "Eline", "Wouter", "Marieke"],
+   "cognomi": ["de Jong", "Jansen", "de Vries", "van den Berg", "Bakker", "Visser", "Smit", "Meijer", "Mertens", "Peeters", "Janssens", "Maes", "Dubois", "Willems"]
+  },
+  "Bolivia": {
+   "nomi": ["Marcelo", "Rosario", "Fernando", "Xiomara", "Jhonny", "Nayra", "Ariel", "Mayra", "Edwin", "Ximena", "Limbert", "Daysi", "Rolando", "Jhoselin"],
+   "cognomi": ["Mamani", "Quispe", "Condori", "Flores", "Choque", "Gutiérrez", "Rojas", "Vargas", "Ticona", "Copa", "Apaza", "Pérez", "Calle", "Villca"]
+  },
+  "Brasile": {
+   "nomi": ["Gabriel", "Larissa", "Lucas", "Camila", "Rafael", "Fernanda", "Thiago", "Juliana", "Mateus", "Amanda", "Bruno", "Letícia", "Felipe", "Bianca"],
+   "cognomi": ["Silva", "Souza", "Oliveira", "Santos", "Lima", "Pereira", "Carvalho", "Almeida", "Barbosa", "Ribeiro", "Cardoso", "Moreira", "Nascimento", "Araújo"]
+  },
+  "Canada": {
+   "nomi": ["Liam", "Emma", "Noah", "Olivia", "Étienne", "Chloé", "Jacob", "Zoé", "Mathieu", "Sarah", "Tristan", "Maya", "Connor", "Léa"],
+   "cognomi": ["Smith", "Tremblay", "Roy", "Gagnon", "Côté", "Bouchard", "Macdonald", "Campbell", "Singh", "Wong", "Gauthier", "Morin", "Lavoie", "Fraser"]
+  },
+  "Cina": {
+   "nomi": ["Wei", "Jun", "Mei", "Hao", "Xia", "Ming", "Yan", "Lei", "Jing", "Tao", "Fang", "Xiu", "Lian", "Bo"],
+   "cognomi": ["Wang", "Li", "Zhang", "Liu", "Chen", "Yang", "Huang", "Zhao", "Wu", "Zhou", "Xu", "Sun", "Ma", "Zhu"]
+  },
+  "Colombia": {
+   "nomi": ["Juan", "Valentina", "Santiago", "Mariana", "Andrés", "Laura", "Camilo", "Daniela", "Sebastián", "Natalia", "Felipe", "Paola", "Julián", "Catalina"],
+   "cognomi": ["Rodríguez", "Gómez", "Martínez", "López", "González", "Ramírez", "Torres", "Díaz", "Vargas", "Castro", "Ortiz", "Rojas", "Moreno", "Herrera"]
+  },
+  "Cono Sud": {
+   "nomi": ["Benjamín", "Antonia", "Vicente", "Javiera", "Matías", "Constanza", "Cristóbal", "Fernanda", "Joaquín", "Catalina", "Sebastián", "Valentina", "Ignacio", "Francisca"],
+   "cognomi": ["González", "Muñoz", "Rojas", "Díaz", "Pérez", "Soto", "Contreras", "Silva", "Martínez", "Sepúlveda", "Morales", "Rodríguez", "López", "Fuentes"]
+  },
+  "Corea del Nord": {
+   "nomi": ["Chol-su", "Mi-hyang", "Yong-ho", "Sun-hui", "Ji-song", "Kyong-hui", "Song-chol", "Hye-yong", "Su-bong", "Chun-hui", "Ryong-gil", "Ok-ju", "Hyok", "Yong-ae"],
+   "cognomi": ["Kim", "Ri", "Pak", "Choe", "Jong", "Kang", "Han", "Jo", "Ryu", "Hong", "Kwak", "Rim", "Ho", "Ju"]
+  },
+  "Corea del Sud": {
+   "nomi": ["Min-jun", "Seo-yeon", "Ji-ho", "Ha-eun", "Hyun-woo", "Ji-woo", "Jae-hyun", "Soo-ah", "Dong-hyun", "Eun-ji", "Sung-min", "Yuna", "Tae-yang", "Mi-rae"],
+   "cognomi": ["Kim", "Lee", "Park", "Choi", "Jung", "Kang", "Cho", "Yoon", "Jang", "Lim", "Han", "Oh", "Seo", "Shin"]
+  },
+  "Corno d'Africa": {
+   "nomi": ["Abdi", "Hodan", "Mohamed", "Ifrah", "Ahmed", "Sagal", "Hassan", "Fadumo", "Yusuf", "Amina", "Farah", "Ladan", "Ali", "Ayaan"],
+   "cognomi": ["Hassan", "Mohamud", "Abdi", "Warsame", "Ali", "Omar", "Jama", "Nur", "Ahmed", "Farah", "Ismail", "Yusuf", "Hirsi", "Duale"]
+  },
+  "Corona Boreale": {
+   "nomi": ["Erik", "Astrid", "Lars", "Ingrid", "Anders", "Freja", "Johan", "Sofia", "Nils", "Elin", "Gustav", "Maja", "Oskar", "Linnea"],
+   "cognomi": ["Andersson", "Johansson", "Karlsson", "Nilsson", "Eriksson", "Larsson", "Olsson", "Persson", "Svensson", "Gustafsson", "Lindqvist", "Hansen", "Nielsen", "Jensen"]
+  },
+  "Corona del Pacifico": {
+   "nomi": ["Jack", "Chloe", "Lachlan", "Matilda", "Mitchell", "Olivia", "Riley", "Grace", "Cooper", "Ruby", "Hamish", "Zoe", "Jarrah", "Tahlia"],
+   "cognomi": ["Smith", "Jones", "Williams", "Brown", "Wilson", "Taylor", "Anderson", "Thompson", "Walker", "White", "Martin", "Kelly", "Nguyen", "Campbell"]
+  },
+  "Costa d'Oro": {
+   "nomi": ["Kwame", "Ama", "Kofi", "Abena", "Yaw", "Akosua", "Kwesi", "Efua", "Nana", "Adwoa", "Kojo", "Esi", "Kwabena", "Afia"],
+   "cognomi": ["Mensah", "Owusu", "Boateng", "Asante", "Appiah", "Osei", "Agyeman", "Adjei", "Quaye", "Tetteh", "Ofori", "Amoah", "Darko", "Acheampong"]
+  },
+  "Cuore Asburgico": {
+   "nomi": ["Matthias", "Theresa", "Franz", "Katalin", "László", "Eliška", "Jakub", "Zsófia", "Stefan", "Petra", "Gábor", "Lenka", "Wolfgang", "Judit"],
+   "cognomi": ["Gruber", "Huber", "Bauer", "Wagner", "Nagy", "Kovács", "Tóth", "Szabó", "Novák", "Svoboda", "Dvořák", "Horváth", "Černý", "Mayer"]
+  },
+  "Cuore Verde": {
+   "nomi": ["Eric", "Brigitte", "Serge", "Estelle", "Jean-Pierre", "Nadine", "Rodrigue", "Carine", "Ludovic", "Sandrine", "Hervé", "Aurélie", "Alain", "Flore"],
+   "cognomi": ["Mbarga", "Nkodo", "Ndongo", "Fotso", "Tchoumi", "Atangana", "Essomba", "Kamga", "Nguemo", "Biyong", "Ateba", "Njoya", "Mballa", "Tagne"]
+  },
+  "Delta dell'Okavango": {
+   "nomi": ["Chanda", "Mutale", "Bwalya", "Chipo", "Mulenga", "Natasha", "Kabwe", "Thandiwe", "Lubinda", "Mwansa", "Tshepo", "Neo", "Kgosi", "Lesego"],
+   "cognomi": ["Banda", "Phiri", "Mwansa", "Mulenga", "Tembo", "Zulu", "Chanda", "Mumba", "Sakala", "Mutale", "Molefe", "Kgosana", "Mogapi", "Modise"]
+  },
+  "Ecuador": {
+   "nomi": ["Andrés", "Doménica", "Kevin", "Camila", "Jefferson", "Ariana", "Bryan", "Génesis", "Santiago", "Salomé", "Mateo", "Dayana", "Cristian", "Lizbeth"],
+   "cognomi": ["Pérez", "Cevallos", "Vera", "Mendoza", "Zambrano", "Cedeño", "Loor", "Alvarado", "Guamán", "Jiménez", "Chávez", "Macías", "Intriago", "Párraga"]
+  },
+  "Egitto": {
+   "nomi": ["Ahmed", "Mona", "Hassan", "Salma", "Karim", "Yasmin", "Youssef", "Nadia", "Mahmoud", "Amira", "Slim", "Leila", "Mehdi", "Samira"],
+   "cognomi": ["Hassan", "Mahmoud", "Ibrahim", "El-Sayed", "Benali", "Bouzid", "Haddad", "Mansouri", "Trabelsi", "Ben Salah", "Amrani", "Alaoui", "Cherif", "Belkacem"]
+  },
+  "El Dorado": {
+   "nomi": ["Luis", "Gabriela", "Carlos", "Andreína", "José", "Yoselin", "Ángel", "María", "Jesús", "Karina", "Rafael", "Mariángel", "Eduardo", "Génesis"],
+   "cognomi": ["Rodríguez", "González", "Pérez", "Hernández", "Díaz", "Márquez", "Rivas", "Mendoza", "Rojas", "Salazar", "Ramírez", "Briceño", "Aguilar", "Blanco"]
+  },
+  "Emirati Arabi Uniti": {
+   "nomi": ["Abdullah", "Fatima", "Mohammed", "Aisha", "Faisal", "Mariam", "Sultan", "Noura", "Rashid", "Latifa", "Salem", "Hessa", "Saeed", "Amal"],
+   "cognomi": ["Al-Otaibi", "Al-Qahtani", "Al-Ghamdi", "Al-Maktoum", "Al-Nahyan", "Al-Mansoori", "Al-Shamsi", "Al-Zahrani", "Al-Harbi", "Al-Dosari", "Al-Hashimi", "Al-Yamani", "Al-Sanani", "Al-Shehri"]
+  },
+  "Etiopia": {
+   "nomi": ["Abebe", "Tigist", "Dawit", "Selam", "Yonas", "Meseret", "Bereket", "Hiwot", "Henok", "Rahel", "Tadesse", "Mulu", "Kidus", "Almaz"],
+   "cognomi": ["Tesfaye", "Bekele", "Gebre", "Haile", "Alemu", "Tadesse", "Mengistu", "Desta", "Girma", "Kebede", "Abera", "Negash", "Wolde", "Assefa"]
+  },
+  "Filippine": {
+   "nomi": ["Juan", "Maria", "Jose", "Angelica", "Miguel", "Kristine", "Carlo", "Jasmine", "Mark", "Rhea", "Paolo", "Bea", "Gabriel", "Liza"],
+   "cognomi": ["Santos", "Reyes", "Cruz", "Bautista", "Garcia", "Ramos", "Mendoza", "Aquino", "Villanueva", "Castillo", "Dela Cruz", "Flores", "Navarro", "Domingo"]
+  },
+  "Fiumi del Sud": {
+   "nomi": ["Mamadou", "Aminata", "Ousmane", "Fatou", "Cheikh", "Awa", "Ibrahima", "Khady", "Moussa", "Mariama", "Abdoulaye", "Ndeye", "Modou", "Rokhaya"],
+   "cognomi": ["Diop", "Ndiaye", "Fall", "Sow", "Gueye", "Diallo", "Sarr", "Faye", "Mbaye", "Ba", "Seck", "Thiam", "Cissé", "Niang"]
+  },
+  "Francia": {
+   "nomi": ["Camille", "Louis", "Élodie", "Julien", "Manon", "Antoine", "Léa", "Hugo", "Margaux", "Mathieu", "Océane", "Thibault", "Claire", "Étienne"],
+   "cognomi": ["Martin", "Bernard", "Dubois", "Thomas", "Robert", "Richard", "Petit", "Durand", "Leroy", "Moreau", "Simon", "Laurent", "Lefèvre", "Fournier"]
+  },
+  "Germania": {
+   "nomi": ["Lukas", "Anna", "Jonas", "Katharina", "Felix", "Lena", "Maximilian", "Sophie", "Tobias", "Julia", "Jan", "Hannah", "Florian", "Greta"],
+   "cognomi": ["Müller", "Schmidt", "Schneider", "Fischer", "Weber", "Meyer", "Wagner", "Becker", "Hoffmann", "Schulz", "Koch", "Richter", "Wolf", "Neumann"]
+  },
+  "Giappone": {
+   "nomi": ["Haruto", "Yui", "Sōta", "Aoi", "Ren", "Hina", "Yuto", "Mio", "Kenji", "Sakura", "Takeshi", "Emi", "Daiki", "Akari"],
+   "cognomi": ["Satō", "Suzuki", "Takahashi", "Tanaka", "Watanabe", "Itō", "Yamamoto", "Nakamura", "Kobayashi", "Katō", "Yoshida", "Yamada", "Sasaki", "Matsumoto"]
+  },
+  "Giordania": {
+   "nomi": ["Omar", "Layla", "Khaled", "Nour", "Samir", "Rania", "Tarek", "Lina", "Yousef", "Hala", "Majid", "Dina", "Fadi", "Salma"],
+   "cognomi": ["Haddad", "Khoury", "Nasser", "Al-Masri", "Mansour", "Saleh", "Al-Hakim", "Darwish", "Qasim", "Hussein", "Al-Tamimi", "Sabbagh", "Barakat", "Jaber"]
+  },
+  "Golfo delle Lagune": {
+   "nomi": ["Emmanuel", "Comfort", "Joseph", "Mary", "Samuel", "Patience", "Moses", "Grace", "Prince", "Hawa", "Alfred", "Princess", "Joe", "Esther"],
+   "cognomi": ["Johnson", "Kollie", "Toe", "Gbessay", "Flomo", "Tarpeh", "Dennis", "Wesley", "Zeon", "Karnley", "Browne", "Cooper", "Harris", "Nimely"]
+  },
+  "Grandi Laghi": {
+   "nomi": ["Jean-Claude", "Immaculée", "Eric", "Claudine", "Patrick", "Alice", "Emmanuel", "Jeanne", "Eugène", "Diane", "Olivier", "Solange", "Innocent", "Aline"],
+   "cognomi": ["Mugisha", "Uwimana", "Habimana", "Niyonzima", "Nshimiyimana", "Mukamana", "Ndayisaba", "Uwase", "Nkurunziza", "Hakizimana", "Mutesi", "Iradukunda", "Kamanzi", "Irakoze"]
+  },
+  "Himalaya e Oceano": {
+   "nomi": ["Bikash", "Sita", "Anil", "Sunita", "Prakash", "Anita", "Dipesh", "Sabina", "Ramesh", "Mina", "Sandeep", "Gita", "Suresh", "Rajani"],
+   "cognomi": ["Sharma", "Gurung", "Thapa", "Rai", "Tamang", "Shrestha", "Karki", "Adhikari", "Magar", "Poudel", "Bhandari", "Sherpa", "Limbu", "Basnet"]
+  },
+  "Hispaniola e Piccole Antille": {
+   "nomi": ["Wilson", "Yokasta", "Starlin", "Yamilka", "Rafael", "Altagracia", "Junior", "Luz", "Ramón", "Massiel", "Edwin", "Yerlin", "Franklin", "Anyelina"],
+   "cognomi": ["Pérez", "Rodríguez", "Martínez", "Santana", "Reyes", "Jean-Baptiste", "Pierre", "Joseph", "Charles", "Cabrera", "Peña", "Mejía", "Louis", "Toussaint"]
+  },
+  "India": {
+   "nomi": ["Arjun", "Priya", "Rohan", "Ananya", "Vikram", "Kavya", "Rahul", "Sneha", "Aditya", "Pooja", "Karan", "Meera", "Sanjay", "Lakshmi"],
+   "cognomi": ["Sharma", "Patel", "Singh", "Kumar", "Gupta", "Reddy", "Iyer", "Nair", "Das", "Mehta", "Joshi", "Chatterjee", "Rao", "Kapoor"]
+  },
+  "Indonesia": {
+   "nomi": ["Budi", "Siti", "Agus", "Dewi", "Rizky", "Putri", "Hendra", "Ayu", "Eko", "Wulan", "Bayu", "Sri", "Andi", "Rina"],
+   "cognomi": ["Santoso", "Wijaya", "Saputra", "Hidayat", "Kurniawan", "Pratama", "Nugroho", "Setiawan", "Susanto", "Lestari", "Purnomo", "Siregar", "Hutapea", "Rahmawati"]
+  },
+  "Iran": {
+   "nomi": ["Reza", "Shirin", "Ali", "Maryam", "Hossein", "Zahra", "Mehdi", "Parisa", "Amir", "Neda", "Kaveh", "Leila", "Babak", "Sara"],
+   "cognomi": ["Hosseini", "Mohammadi", "Ahmadi", "Karimi", "Rahimi", "Jafari", "Rezaei", "Moradi", "Hashemi", "Sadeghi", "Kazemi", "Ebrahimi", "Tehrani", "Farahani"]
+  },
+  "Iraq": {
+   "nomi": ["Omar", "Layla", "Khaled", "Nour", "Samir", "Rania", "Tarek", "Lina", "Yousef", "Hala", "Majid", "Dina", "Fadi", "Salma"],
+   "cognomi": ["Haddad", "Khoury", "Nasser", "Al-Masri", "Mansour", "Saleh", "Al-Hakim", "Darwish", "Qasim", "Hussein", "Al-Tamimi", "Sabbagh", "Barakat", "Jaber"]
+  },
+  "Irlanda": {
+   "nomi": ["Seán", "Aoife", "Cian", "Niamh", "Conor", "Saoirse", "Darragh", "Siobhán", "Eoin", "Ciara", "Fionn", "Orla", "Declan", "Maeve"],
+   "cognomi": ["Murphy", "Kelly", "O'Sullivan", "Walsh", "Byrne", "Ryan", "O'Brien", "Doyle", "McCarthy", "Gallagher", "Kavanagh", "Quinn", "Nolan", "Brennan"]
+  },
+  "Israele": {
+   "nomi": ["David", "Noa", "Yossi", "Tamar", "Eitan", "Shira", "Amir", "Maya", "Itai", "Yael", "Oren", "Talia", "Gal", "Michal"],
+   "cognomi": ["Cohen", "Levi", "Mizrahi", "Peretz", "Biton", "Dahan", "Avraham", "Friedman", "Katz", "Shapira", "Azulay", "Goldberg", "Ben-David", "Ohayon"]
+  },
+  "Istmo e Grandi Antille": {
+   "nomi": ["Yoel", "Yaneisy", "Alejandro", "Yamilet", "Raúl", "Lázara", "Orlando", "Dayron", "Lisandra", "Ernesto", "Yunier", "Maylén", "Reinier", "Yanet"],
+   "cognomi": ["Rodríguez", "Hernández", "González", "Pérez", "García", "Martínez", "Fernández", "Díaz", "Sánchez", "López", "Gómez", "Cabrera", "Valdés", "Castro"]
+  },
+  "Italia": {
+   "nomi": ["Giulia", "Marco", "Alessandro", "Chiara", "Luca", "Francesca", "Matteo", "Sofia", "Davide", "Elena", "Giorgio", "Martina", "Stefano", "Valentina"],
+   "cognomi": ["Rossi", "Russo", "Ferrari", "Esposito", "Bianchi", "Romano", "Colombo", "Ricci", "Marino", "Greco", "Bruno", "Gallo", "Conti", "De Luca"]
+  },
+  "Kazakistan": {
+   "nomi": ["Nurlan", "Aigerim", "Daulet", "Madina", "Yerlan", "Dana", "Askar", "Gulnara", "Marat", "Aliya", "Timur", "Saule", "Bauyrzhan", "Zhanna"],
+   "cognomi": ["Nurmagambetov", "Suleimenov", "Akhmetov", "Kenzhebayev", "Omarov", "Zhumabayev", "Serikbayev", "Abdrakhmanov", "Dosmukhamedov", "Tulegenov", "Bekov", "Kasymov", "Mukhametov", "Aitbayev"]
+  },
+  "Kenya": {
+   "nomi": ["Brian", "Wanjiru", "Kevin", "Achieng", "Joseph", "Njeri", "Kamau", "Akinyi", "Otieno", "Wambui", "Mwangi", "Chebet", "Kiprop", "Nyambura"],
+   "cognomi": ["Kamau", "Mwangi", "Otieno", "Odhiambo", "Kipchoge", "Njoroge", "Wanjiku", "Maina", "Onyango", "Kariuki", "Mutua", "Wafula", "Kiplagat", "Omondi"]
+  },
+  "Lega Antartica": {
+   "nomi": ["Alexei", "Ingrid", "Tomás", "Ayumi", "Daniel", "Sofia", "Kofi", "Amélie", "Henrik", "Priya", "Marco", "Chen", "Yara", "Liam"],
+   "cognomi": ["Larsen", "Petrov", "Silva", "Tanaka", "Williams", "Moreau", "Rossi", "Kowalski", "Singh", "Okafor", "Müller", "Park", "Santos", "Haugen"]
+  },
+  "Madagascar": {
+   "nomi": ["Hery", "Voahangy", "Andry", "Miora", "Rivo", "Fara", "Tojo", "Lalaina", "Faniry", "Haingo", "Mamy", "Noro", "Njaka", "Soa"],
+   "cognomi": ["Rakotoarisoa", "Randrianarivelo", "Rasolofo", "Andriamampianina", "Rakotomalala", "Razafindrakoto", "Ravelonarivo", "Rabemananjara", "Rasoanaivo", "Andrianasolo", "Ramanantsoa", "Rajaonarison", "Ratsimbazafy", "Raharimalala"]
+  },
+  "Marca della Vistola": {
+   "nomi": ["Piotr", "Agnieszka", "Tomasz", "Katarzyna", "Pavel", "Alena", "Andrzej", "Maryia", "Jakub", "Hanna", "Maksim", "Zofia", "Kacper", "Daria"],
+   "cognomi": ["Nowak", "Kowalski", "Wiśniewski", "Wójcik", "Kamiński", "Lewandowski", "Zieliński", "Szymański", "Kavaliou", "Ivanou", "Kazlou", "Dąbrowski", "Kozłowski", "Mazur"]
+  },
+  "Messico": {
+   "nomi": ["Santiago", "Ximena", "Emiliano", "Regina", "Mateo", "Valeria", "Diego", "Renata", "Axel", "Dulce", "Jesús", "Guadalupe", "Cuauhtémoc", "Citlali"],
+   "cognomi": ["Hernández", "García", "Martínez", "López", "González", "Ramírez", "Flores", "Cruz", "Gutiérrez", "Ortega", "Reyes", "Mendoza", "Aguilar", "Cortés"]
+  },
+  "Mongolia": {
+   "nomi": ["Batbayar", "Oyuna", "Temuujin", "Narantuya", "Ganbold", "Saran", "Bold", "Enkhjin", "Tsogt", "Altan", "Munkh", "Khulan", "Erdene", "Bayarmaa"],
+   "cognomi": ["Batbayar", "Dorj", "Ganbold", "Bold", "Erdene", "Tsend", "Naranbaatar", "Purev", "Sukh", "Baatar", "Chuluun", "Dashdorj", "Gantulga", "Munkhbat"]
+  },
+  "Mozambico": {
+   "nomi": ["Alberto", "Graça", "Fernando", "Filomena", "Jaime", "Lurdes", "Carlos", "Amélia", "Aníbal", "Dulce", "Hélio", "Ermelinda", "Ismael", "Josina"],
+   "cognomi": ["Macamo", "Machava", "Sitoe", "Mabunda", "Cossa", "Tembe", "Nhantumbo", "Matsinhe", "Muchanga", "Nhaca", "Langa", "Maculuve", "Chongo", "Zandamela"]
+  },
+  "Myanmar": {
+   "nomi": ["Aung", "Thida", "Kyaw", "Su Su", "Min", "Hnin", "Zaw", "Khin", "Htet", "May", "Naing", "Ei", "Tun", "Phyu"],
+   "cognomi": ["Aung", "Win", "Oo", "Htun", "Naing", "Zaw", "Thant", "Myint", "Soe", "Kyaw", "Tun", "Lwin", "Hlaing", "Maung"]
+  },
+  "Nigeria": {
+   "nomi": ["Chinedu", "Amara", "Oluwaseun", "Ngozi", "Ibrahim", "Aisha", "Emeka", "Funmilayo", "Tunde", "Chiamaka", "Musa", "Ifeoma", "Adebayo", "Zainab"],
+   "cognomi": ["Okafor", "Adeyemi", "Abubakar", "Ibrahim", "Okonkwo", "Balogun", "Eze", "Uche", "Bello", "Oladipo", "Nwosu", "Danjuma", "Adeleke", "Obi"]
+  },
+  "Pakistan": {
+   "nomi": ["Ali", "Ayesha", "Hassan", "Fatima", "Usman", "Zainab", "Bilal", "Sana", "Imran", "Hira", "Hamza", "Maryam", "Tariq", "Nida"],
+   "cognomi": ["Khan", "Ahmed", "Malik", "Hussain", "Qureshi", "Sheikh", "Butt", "Chaudhry", "Raza", "Siddiqui", "Mirza", "Iqbal", "Ansari", "Baig"]
+  },
+  "Perù": {
+   "nomi": ["Luis", "Rosa", "Carlos", "Milagros", "Jorge", "Yesenia", "César", "Lucero", "Miguel", "Fiorella", "Walter", "Jimena", "Rodrigo", "Mayumi"],
+   "cognomi": ["Quispe", "Flores", "Sánchez", "García", "Rodríguez", "Huamán", "Mamani", "Chávez", "Torres", "Vargas", "Castillo", "Ramos", "Rojas", "Condori"]
+  },
+  "Portogallo": {
+   "nomi": ["João", "Inês", "Tiago", "Beatriz", "Rui", "Mariana", "Pedro", "Catarina", "Miguel", "Joana", "Duarte", "Filipa", "Nuno", "Teresa"],
+   "cognomi": ["Silva", "Santos", "Ferreira", "Pereira", "Oliveira", "Costa", "Rodrigues", "Martins", "Sousa", "Fernandes", "Gonçalves", "Gomes", "Lopes", "Marques"]
+  },
+  "RD Congo": {
+   "nomi": ["Jean", "Marie", "Patrick", "Espérance", "Joël", "Chantal", "Didier", "Grâce", "Christian", "Nadège", "Fiston", "Béatrice", "Trésor", "Mireille"],
+   "cognomi": ["Mukendi", "Mbuyi", "Kasongo", "Ilunga", "Kalala", "Mutombo", "Banza", "Ngoy", "Kabongo", "Mwamba", "Tshimanga", "Kazadi", "Nsimba", "Tshibangu"]
+  },
+  "Regno Unito": {
+   "nomi": ["Oliver", "Charlotte", "Harry", "Amelia", "George", "Poppy", "Jack", "Isla", "Thomas", "Eleanor", "Callum", "Fiona", "Edward", "Rhiannon"],
+   "cognomi": ["Smith", "Jones", "Taylor", "Brown", "Williams", "Wilson", "Davies", "Evans", "Thompson", "Walker", "Roberts", "Campbell", "Hughes", "Wright"]
+  },
+  "Regno dell'Atlante": {
+   "nomi": ["Ahmed", "Mona", "Hassan", "Salma", "Karim", "Yasmin", "Youssef", "Nadia", "Mahmoud", "Amira", "Slim", "Leila", "Mehdi", "Samira"],
+   "cognomi": ["Hassan", "Mahmoud", "Ibrahim", "El-Sayed", "Benali", "Bouzid", "Haddad", "Mansouri", "Trabelsi", "Ben Salah", "Amrani", "Alaoui", "Cherif", "Belkacem"]
+  },
+  "Rotte Carovaniere": {
+   "nomi": ["Ahmed", "Mona", "Hassan", "Salma", "Karim", "Yasmin", "Youssef", "Nadia", "Mahmoud", "Amira", "Slim", "Leila", "Mehdi", "Samira"],
+   "cognomi": ["Hassan", "Mahmoud", "Ibrahim", "El-Sayed", "Benali", "Bouzid", "Haddad", "Mansouri", "Trabelsi", "Ben Salah", "Amrani", "Alaoui", "Cherif", "Belkacem"]
+  },
+  "Russia": {
+   "nomi": ["Ivan", "Anastasia", "Dmitri", "Ekaterina", "Sergej", "Olga", "Aleksej", "Natalia", "Nikolaj", "Marina", "Pavel", "Tatiana", "Andrej", "Irina"],
+   "cognomi": ["Ivanov", "Smirnov", "Kuznecov", "Popov", "Volkov", "Sokolov", "Lebedev", "Morozov", "Petrov", "Novikov", "Orlov", "Fedorov", "Zaitsev", "Romanov"]
+  },
+  "Siria": {
+   "nomi": ["Omar", "Layla", "Khaled", "Nour", "Samir", "Rania", "Tarek", "Lina", "Yousef", "Hala", "Majid", "Dina", "Fadi", "Salma"],
+   "cognomi": ["Haddad", "Khoury", "Nasser", "Al-Masri", "Mansour", "Saleh", "Al-Hakim", "Darwish", "Qasim", "Hussein", "Al-Tamimi", "Sabbagh", "Barakat", "Jaber"]
+  },
+  "Spagna": {
+   "nomi": ["Javier", "Lucía", "Carlos", "Carmen", "Alejandro", "Paula", "Sergio", "Marta", "Diego", "Irene", "Pablo", "Laura", "Adrián", "Elena"],
+   "cognomi": ["García", "Fernández", "González", "Rodríguez", "López", "Martínez", "Sánchez", "Pérez", "Gómez", "Ruiz", "Hernández", "Díaz", "Moreno", "Álvarez"]
+  },
+  "Stati Uniti": {
+   "nomi": ["James", "Emily", "Michael", "Ashley", "Tyler", "Jessica", "Brandon", "Megan", "Ethan", "Taylor", "Austin", "Hannah", "Jordan", "Samantha"],
+   "cognomi": ["Johnson", "Williams", "Miller", "Davis", "Garcia", "Rodriguez", "Wilson", "Martinez", "Anderson", "Taylor", "Thomas", "Lee", "Moore", "Jackson"]
+  },
+  "Stretto di Malacca": {
+   "nomi": ["Wei Jie", "Siti", "Rajesh", "Mei Ling", "Ahmad", "Priya", "Kevin", "Nurul", "Jun Hao", "Kavitha", "Hafiz", "Shu Ting", "Daniel", "Farah"],
+   "cognomi": ["Tan", "Lim", "Lee", "Ng", "Wong", "Chua", "Abdullah", "Rahman", "Pillai", "Nair", "Singh", "Goh", "Teo", "Ismail"]
+  },
+  "Sudafrica": {
+   "nomi": ["Thabo", "Naledi", "Sipho", "Lerato", "Pieter", "Annelize", "Johan", "Zanele", "Themba", "Thandi", "Willem", "Karabo", "Lwazi", "Elmarie"],
+   "cognomi": ["Nkosi", "Dlamini", "Zulu", "Khumalo", "Naidoo", "van der Merwe", "Botha", "Pretorius", "Mokoena", "Ndlovu", "Molefe", "du Plessis", "Maseko", "Venter"]
+  },
+  "Sudan": {
+   "nomi": ["Mohamed", "Amal", "Abdelrahman", "Hiba", "Osman", "Rawan", "Yasir", "Nahla", "Mustafa", "Sara", "Babiker", "Maha", "Adil", "Ikhlas"],
+   "cognomi": ["Ahmed", "Abdalla", "Osman", "Idris", "Elamin", "Hamid", "Khalil", "Suliman", "Ali", "Babiker", "Mahjoub", "Eltayeb", "Yousif", "Nour"]
+  },
+  "Tagikistan": {
+   "nomi": ["Rustam", "Nigina", "Farhod", "Dilnoza", "Sherzod", "Madina", "Bahrom", "Zulfiya", "Jamshed", "Mavzuna", "Firdavs", "Gulnoza", "Abdullo", "Parvina"],
+   "cognomi": ["Rahmonov", "Saidov", "Nazarov", "Qodirov", "Mirzoev", "Sharipov", "Ashurov", "Davlatov", "Karimov", "Mahmudov", "Safarov", "Boboev", "Zokirov", "Kurbonov"]
+  },
+  "Taiwan": {
+   "nomi": ["Chia-hao", "Yu-ting", "Zhi-hao", "Mei-ling", "Wen-hsiung", "Pei-shan", "Kuo-ming", "Hsiao-yu", "Cheng-han", "Yi-chen", "Po-wei", "Shu-fen", "Ming-hui", "Ya-ting"],
+   "cognomi": ["Chen", "Lin", "Huang", "Chang", "Lee", "Wang", "Wu", "Liu", "Tsai", "Yang", "Hsu", "Cheng", "Kuo", "Hsieh"]
+  },
+  "Tanzania": {
+   "nomi": ["Juma", "Neema", "Hassani", "Rehema", "Baraka", "Zawadi", "Salim", "Upendo", "Emmanuel", "Amina", "Daudi", "Furaha", "Ally", "Mwajuma"],
+   "cognomi": ["Mwakyusa", "Msuya", "Mushi", "Kimaro", "Massawe", "Mrema", "Mollel", "Shirima", "Mbwambo", "Kileo", "Mtui", "Lyimo", "Swai", "Temba"]
+  },
+  "Terra dei Maya": {
+   "nomi": ["Pedro", "María", "Juan", "Rosa", "Miguel", "Lucía", "Diego", "Carmen", "Tomás", "Ixchel", "Balam", "Kinich", "Itzel", "Xóchitl"],
+   "cognomi": ["Tzul", "Choc", "Pop", "Caal", "Ixcoy", "Xol", "López", "Pérez", "Tun", "Chan", "Canul", "Ek", "Coc", "Batz"]
+  },
+  "Terre Nere": {
+   "nomi": ["Oleksandr", "Olena", "Andrij", "Oksana", "Taras", "Iryna", "Bohdan", "Svitlana", "Dmytro", "Kateryna", "Volodymyr", "Nataliia", "Mykola", "Yulia"],
+   "cognomi": ["Shevchenko", "Kovalenko", "Bondarenko", "Tkachenko", "Kravchenko", "Melnyk", "Boyko", "Lysenko", "Moroz", "Savchenko", "Petrenko", "Marchenko", "Polishchuk", "Hrytsenko"]
+  },
+  "Terre del Sahel": {
+   "nomi": ["Moussa", "Awa", "Bakary", "Fanta", "Oumar", "Mariam", "Seydou", "Kadiatou", "Amadou", "Aïssata", "Boubacar", "Hawa", "Modibo", "Djénéba"],
+   "cognomi": ["Traoré", "Keïta", "Coulibaly", "Diarra", "Konaté", "Touré", "Sidibé", "Camara", "Sangaré", "Dembélé", "Cissé", "Maïga", "Doumbia", "Togola"]
+  },
+  "Thailandia": {
+   "nomi": ["Somchai", "Suda", "Anan", "Malee", "Prasert", "Pimchanok", "Kittisak", "Ploy", "Thanawat", "Nong", "Chaiwat", "Siriporn", "Narong", "Apinya"],
+   "cognomi": ["Srisai", "Charoen", "Wongsakul", "Boonmee", "Chaiyaporn", "Rattanakul", "Suwannarat", "Phongsa", "Thongchai", "Saetang", "Prasertsak", "Kaewmanee", "Jaidee", "Pongpan"]
+  },
+  "Turchia": {
+   "nomi": ["Mehmet", "Elif", "Mustafa", "Zeynep", "Ahmet", "Ayşe", "Emre", "Merve", "Burak", "Selin", "Kemal", "Deniz", "Hakan", "Gül"],
+   "cognomi": ["Yılmaz", "Kaya", "Demir", "Şahin", "Çelik", "Yıldız", "Yıldırım", "Öztürk", "Aydın", "Özdemir", "Arslan", "Doğan", "Kılıç", "Aksoy"]
+  },
+  "Uganda": {
+   "nomi": ["Moses", "Grace", "Ronald", "Sarah", "Isaac", "Prossy", "Brian", "Ritah", "Joel", "Harriet", "Samuel", "Winnie", "Patrick", "Juliet"],
+   "cognomi": ["Mukasa", "Okello", "Ssemakula", "Nakato", "Opio", "Kato", "Waiswa", "Mugisha", "Byaruhanga", "Tumusiime", "Ochieng", "Kiggundu", "Atim", "Ssali"]
+  },
+  "Uzbekistan": {
+   "nomi": ["Aziz", "Dilnoza", "Rustam", "Gulnora", "Jasur", "Malika", "Bobur", "Nodira", "Sardor", "Zilola", "Otabek", "Feruza", "Timur", "Madina"],
+   "cognomi": ["Karimov", "Rakhimov", "Yusupov", "Abdullaev", "Ismoilov", "Tursunov", "Nazarov", "Saidov", "Mirzaev", "Kholmatov", "Alimov", "Usmonov", "Umarov", "Normatov"]
+  },
+  "Valle del Mekong": {
+   "nomi": ["Sokha", "Srey", "Vireak", "Sothea", "Rithy", "Chantha", "Dara", "Sophea", "Piseth", "Kunthea", "Vuthy", "Bopha", "Samnang", "Channary"],
+   "cognomi": ["Chea", "Sok", "Kim", "Heng", "Chan", "Ly", "Sao", "Mao", "Pich", "Keo", "Hun", "Ouk", "Touch", "Seng"]
+  },
+  "Valle dello Zambesi": {
+   "nomi": ["Tendai", "Rudo", "Farai", "Nyasha", "Tatenda", "Tsitsi", "Tafadzwa", "Kudzai", "Rutendo", "Takudzwa", "Vimbai", "Simba", "Ruvimbo", "Chipo"],
+   "cognomi": ["Moyo", "Ndlovu", "Sibanda", "Dube", "Nyathi", "Mutasa", "Chikwanha", "Mpofu", "Makoni", "Mahlangu", "Mutsvairo", "Gumbo", "Marufu", "Chigumba"]
+  },
+  "Vietnam": {
+   "nomi": ["Minh", "Lan", "Hùng", "Thu", "Tuấn", "Hoa", "Dũng", "Mai", "Quang", "Linh", "Nam", "Hà", "Phúc", "Trang"],
+   "cognomi": ["Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Huỳnh", "Phan", "Vũ", "Võ", "Đặng", "Bùi", "Đỗ", "Ngô", "Dương"]
+  },
+  "Yemen": {
+   "nomi": ["Abdullah", "Fatima", "Mohammed", "Aisha", "Faisal", "Mariam", "Sultan", "Noura", "Rashid", "Latifa", "Salem", "Hessa", "Saeed", "Amal"],
+   "cognomi": ["Al-Otaibi", "Al-Qahtani", "Al-Ghamdi", "Al-Maktoum", "Al-Nahyan", "Al-Mansoori", "Al-Shamsi", "Al-Zahrani", "Al-Harbi", "Al-Dosari", "Al-Hashimi", "Al-Yamani", "Al-Sanani", "Al-Shehri"]
+  }
+ }
+}

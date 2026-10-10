@@ -360,6 +360,7 @@ details.help .note { margin: 0; padding: 0 10px 10px; }
 
 .plane.patrol { --c: var(--patrol); }
 .plane.damaged { --c: var(--damaged); }
+.plane.t-fighter.rtb:not(.damaged) { --c: var(--ok); }
 .modes button[aria-pressed="true"] { background: var(--c, var(--fighter)); }
 
 /* basi secondarie e artefatti */

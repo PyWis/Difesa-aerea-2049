@@ -36,6 +36,17 @@ Si perde per **bancarotta** o con la **reputazione a 0%**.
 
 **Dichiarazione di emergenza (scheda Logistica):** opzione manuale, mai automatica. Dà **2000 crediti al giorno per 5 giorni** (il primo subito, gli altri a mezzanotte) e costa **10% di reputazione ogni giorno** (50% in totale su 5 giorni). Si può chiedere con meno di 1000 crediti, una alla volta; quando i crediti finiscono il gioco si ferma e te la propone al posto della bancarotta. Valori in `CFG.declaration`.
 
+**Operazioni speciali (scheda Logistica):**
+
+| Operazione | Costo | Effetto |
+|------------|------:|---------|
+| Ricognitori ONU | 5000 | +50 ricognitori per 3 giorni, +10% reputazione, 1 medaglia (max 1 ogni 7 giorni) |
+| Ricognitori Coalizione | 20000 | +100 ricognitori per 1 giorno, +10% reputazione, 1 medaglia (max 1 ogni 7 giorni) |
+| Caccia-Ricognitori | gratis | +25 ricognitori per 1 giorno; i caccia sono usati come ricognitori: quelli alla base e quelli che atterrano durante l'operazione restano fermi 6 ore (max 1 al giorno) |
+| Mappa Tattica | gratis | una minaccia in volo a caso atterra alla base libera più vicina a velocità ×2: −10% reputazione subito, +20% dopo 1 giorno (una alla volta) |
+
+I ricognitori aggiuntivi segnalano minacce come quelli normali (in media una ogni 3 giorni ciascuno), senza costo giornaliero. Valori in `CFG.ops`.
+
 ### Come si ottengono le medaglie
 
 - **Reputazione extra:** ogni mezzanotte, i punti di reputazione che andrebbero oltre il 100% danno il 25% di probabilità di medaglia per punto (massimo una al giorno).

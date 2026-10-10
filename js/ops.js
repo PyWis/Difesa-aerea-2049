@@ -10,7 +10,49 @@ function holdFighter(p) {
   p.state = 'repair'; p.hold = true; p.repairUntil = S.t + CFG.ops.fighters.holdH * 60;
 }
 const tacticalPool = () => airThreats().filter(t => !t.raid && t.state !== 'raid');
+const returning = () => planesOf('fighter').filter(p => p.state === 'rtb' && !p.recov).sort((a, b) => dist(a, S.base) - dist(b, S.base));
+const tacticalAir = () => planesOf('tactical').filter(isAir);
+// bersagli per una missione tattica: basi sotto attacco (le più vicine) e addestramenti
+const tacticalTargets = () => [...S.threats.filter(t => t.state === 'cooldown').map(t => ({ th: t, pos: t })), ...S.trainings.map(tr => ({ tr, pos: tr.base }))];
 const OPS = [
+  { id: 'recover', desc: o => `Rientro ×${o.mult} per i ${o.n} caccia in rientro più vicini alla base (di pattuglia, normali o danneggiati). Non possono avere nuove missioni finché non atterrano.`,
+    can: () => returning().length ? '' : 'Nessun caccia in rientro',
+    run(o) {
+      const pick = returning().slice(0, o.n);
+      for (const p of pick) p.recov = o.mult;
+      addLog(`${o.label}: ${pick.map(p => p.id).join(', ')} rientrano a velocità ×${o.mult}.`, 'good');
+    } },
+  { id: 'recoverAll', desc: o => `Rientro ×${o.mult} per tutti i caccia in rientro. ${Math.round(o.chance * 100)}% di probabilità, per ciascuno, di richiamare anche i caccia in missione. Non possono avere nuove missioni finché non atterrano.`,
+    can: () => planesOf('fighter').some(p => isAir(p) && !p.recov) ? '' : 'Nessun caccia in volo',
+    run(o) {
+      const done = [], recalled = [];
+      for (const p of planesOf('fighter').filter(isAir)) {
+        if (p.state !== 'rtb') { if (Math.random() >= o.chance) continue; goHome(p); recalled.push(p.id); }
+        p.recov = o.mult; done.push(p.id);
+      }
+      addLog(`${o.label}: ${done.length} caccia rientrano a velocità ×${o.mult}${recalled.length ? ` (richiamati dalla missione: ${recalled.join(', ')})` : ''}.`, 'good');
+    } },
+  { id: 'autoTac', desc: o => `Porta i rifornitori a 0, bloccati per ${o.tankerLockH} ore, e assegna una nuova missione tattica agli aerei tattici in volo, anche se stanno rientrando. Una volta ogni ${o.cooldownDays} giorni.`,
+    can: () => !tacticalAir().length ? 'Nessun aereo tattico in volo' : !tacticalTargets().length ? 'Nessuna missione tattica disponibile' : '',
+    run(o) {
+      const used = new Set();
+      const assigned = [];
+      for (const p of tacticalAir()) {
+        const t = tacticalTargets().filter(x => !used.has(x.th || x.tr)).sort((a, b) => dist(p, a.pos) - dist(p, b.pos))[0];
+        if (!t) break;
+        used.add(t.th || t.tr);
+        p.state = 'flight'; p.fast = false; p.recov = 0; p.escort = null; p.engaged = null; p.aim = null;
+        if (t.th) { p.mission = null; p.target = t.th.id; assigned.push(`${p.id} → ${t.th.attack.name}`); }
+        else { p.mission = 'train'; p.trainId = t.tr.id; p.target = null; assigned.push(`${p.id} → addestramento a ${t.tr.base.name}`); }
+      }
+      const n = S.support.tanker;
+      if (n) {
+        const refund = n * CFG.tankerPerDay * minutesToMidnight(S.t) / DAY;
+        S.credits += refund; S.support.tanker = 0;
+      }
+      S.support.lock.tanker = S.t + o.tankerLockH * 60;
+      addLog(`${o.label}: ${assigned.join('; ')}. Rifornitori ${n} → 0, bloccati per ${o.tankerLockH} ore.`, 'good');
+    } },
   { id: 'onu', desc: o => `Attiva +${o.n} ricognitori per ${o.days} giorni. Vale +${o.repBonus}% di reputazione e ${o.medals} medaglia. Massimo 1 ogni ${o.cooldownDays} giorni.`,
     run(o) {
       addBoost(o.label, o.n, o.days);

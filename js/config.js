@@ -27,7 +27,7 @@ const CFG = {
   threatTurnChance: 0.03,   // probabilità di cambio direzione ogni ora
   upgradeStep: 100,         // km/h guadagnati per ogni giorno di potenziamento
   baseAutonomyH: 8, tankerBonusH: 4, // ore di autonomia in più per ogni rifornitore attivo
-  winChance: 0.55,          // probabilità standard di vittoria dei caccia contro una minaccia
+  winChance: 0.70,          // probabilità standard di vittoria dei caccia contro una minaccia
   winMin: 0.25,             // minimo raggiungibile salendo di grado (−2% a grado)
   interceptRadiusKm: 15,
   killReward: 1000,         // ricompensa per minaccia eliminata
@@ -156,6 +156,9 @@ const CFG = {
     onu:       { label: 'Ricognitori ONU',        cost: 5000,  n: 50,  days: 3, repBonus: 10, medals: 1, cooldownDays: 7 },
     coalition: { label: 'Ricognitori Coalizione', cost: 20000, n: 100, days: 1, repBonus: 10, medals: 1, cooldownDays: 7 },
     fighters:  { label: 'Caccia-Ricognitori',     cost: 0,     n: 25,  days: 1, holdH: 6,    cooldownDays: 1 },
+    recover:   { label: 'Missione Recupero',          cost: 800,  n: 5, mult: 2 },   // ×2 il rientro dei 5 caccia in rientro più vicini alla base
+    recoverAll:{ label: 'Missione Recupero totale',   cost: 1500, mult: 5, chance: 0.2 }, // ×5 il rientro di tutti i caccia; 20% anche di quelli in missione
+    autoTac:   { label: 'Missione tattica automatica', cost: 0, cooldownDays: 7, tankerLockH: 12 },
     tactical:  { label: 'Mappa Tattica',          cost: 0,     speedMult: 2, repNow: -10, repLater: 20, laterDays: 1 },
   },
   majorRepBonus: 10,        // base maggiore: reputazione guadagnata all'acquisto

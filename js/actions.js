@@ -91,7 +91,7 @@ const A = {
   },
   escort(fighterId, leaderId) {
     const f = findPlane(fighterId), l = findPlane(leaderId);
-    if (!f || f.type !== 'fighter' || f.damaged || f.fast || !l || !isStrike(l) || !isAir(l)) return;
+    if (!f || f.type !== 'fighter' || f.damaged || f.fast || f.recov || !l || !isStrike(l) || !isAir(l)) return;
     if (f.state === 'upgrading' || f.state === 'repair') return;
     if (f.state === 'base') {
       if (!crewReady(f)) { addLog(`${f.id} non può decollare: servono 1° e 2° pilota (Caserma).`, 'bad'); return; }
@@ -164,7 +164,7 @@ const A = {
   },
   retarget(planeId, threatId) {
     const p = findPlane(planeId), th = findThreat(threatId);
-    if (!p || p.state !== 'rtb' || !th || isStrike(p) || p.damaged || p.fast) return;
+    if (!p || p.state !== 'rtb' || !th || isStrike(p) || p.damaged || p.fast || p.recov) return;
     if (isStrike(p) !== (th.state === 'cooldown')) return;
     p.state = 'flight'; p.target = threatId; p.aim = null;
     addLog(`${p.id} interrompe il rientro e punta su ${threatId}.`);

@@ -160,7 +160,7 @@ section.block h2 button { margin-left: auto; }
 }
 .modal.open { display: flex; }
 .modal .card {
-  background: var(--panel); border: 1px solid var(--panel-line); border-radius: 8px; padding: 24px; max-width: 420px;
+  background: var(--panel); border: 1px solid var(--panel-line); border-radius: 8px; padding: 24px; width: min(520px, 100%); max-height: 100%; overflow-y: auto;
 }
 .modal h2 { margin: 0 0 8px; font-family: "Chakra Petch", system-ui, sans-serif; }
 
@@ -373,3 +373,20 @@ details.help .note { margin: 0; padding: 0 10px 10px; }
 .art:first-of-type { border-top: 0; }
 .art.on { border-left: 3px solid var(--ok); padding-left: 10px; }
 .art-head { display: flex; align-items: center; gap: 8px; justify-content: space-between; flex-wrap: wrap; }
+
+/* modali: moduli, classifica */
+.modal .btn { margin: 8px 8px 0 0; }
+.modal label { display: block; margin: 10px 0 0; font-size: 0.85rem; color: var(--ink-soft); }
+.modal input, .modal select {
+  display: block; width: 100%; margin-top: 4px; padding: 7px 9px; font: inherit; color: var(--ink);
+  background: transparent; border: 1px solid var(--panel-line); border-radius: 5px;
+}
+.modal select option { background: var(--panel); color: var(--ink); }
+.modal input:focus-visible { outline: 2px solid var(--base); outline-offset: 1px; }
+.modal h3 { margin: 16px 0 6px; font-family: "Chakra Petch", system-ui, sans-serif; font-size: 1rem; }
+.board { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.board th { text-align: left; color: var(--ink-soft); font-weight: 500; border-bottom: 1px solid var(--panel-line); padding: 4px 6px; }
+.board td { padding: 5px 6px; border-bottom: 1px dashed var(--panel-line); vertical-align: top; font-variant-numeric: tabular-nums; }
+.board td .note { margin: 0; }
+.board tr.me { background: color-mix(in srgb, var(--base) 16%, transparent); }
+.credits small.debt, .credits.low small { color: var(--threat); }

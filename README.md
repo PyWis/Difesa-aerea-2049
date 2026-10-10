@@ -1,17 +1,22 @@
 # Difesa Aerea 2049
 
-Gioco di strategia in tempo reale (accelerabile) ambientato il 21 marzo 2049. Difendi il pianeta dalle minacce aeree, gestisci crediti e reputazione e sali di grado fino a **Generale Planetario**.
+**Un XCOM hardcore dedicato alla logistica.** Non comandi i soldati in battaglia: comandi quello che sta dietro. Pochi aerei, crediti contati, autonomia limitata, reputazione fragile e nessuna rete di sicurezza che non si paghi. Il 21 marzo 2049 il pianeta è sotto attacco: ogni decollo ha un costo, ogni perdita una penale, ogni errore di bilancio può chiudere la partita. Gioco di strategia in tempo reale (accelerabile): difendi il cielo, gestisci crediti e reputazione e sali di grado fino a **Generale Planetario**.
 
 ## Avvio
 
-Il gioco è statico (HTML + JavaScript, nessuna dipendenza). `mondo.csv` viene letto con `fetch`, quindi serve un piccolo server locale:
+Il gioco è statico (HTML + JavaScript, nessuna dipendenza). `mondo.csv` viene letto con `fetch`, quindi serve un server locale. Con `server.py` (solo libreria standard di Python) la classifica viene scritta in `classifica.json`:
 
 ```bash
-python3 -m http.server 8000
-# poi apri http://localhost:8000
+python3 server.py          # poi apri http://127.0.0.1:8000  (opzionale: python3 server.py 8080)
 ```
 
-Se il file non può essere letto, il gioco ti permette di caricare `mondo.csv` a mano.
+Anche `python3 -m http.server 8000` funziona, ma la classifica resta solo nel browser (si può scaricare come `classifica.json`). Se `mondo.csv` non può essere letto, il gioco ti permette di caricarlo a mano.
+
+## Inizio partita, salvataggio e classifica
+
+- **Comandante:** a ogni nuova partita scegli **nome**, **cognome** e **stato** (tra quelli di `mondo.csv`); il profilo viene ricordato per la partita successiva.
+- **Salvataggio automatico:** a ogni mezzanotte di gioco (le 24) la partita viene salvata nel browser (`localStorage`). All'avvio, se c'è un salvataggio, scegli tra **Continua l'ultima partita** e **Nuova partita**. Il salvataggio viene **cancellato automaticamente quando la partita finisce** (bancarotta, reputazione a zero, vittoria). La partita ripresa parte in pausa.
+- **Classifica (top 10, `classifica.json`):** a fine partita il risultato viene registrato. Ordine: più **medaglie**; a parità, vince chi è **durato più a lungo**; tra le partite **vinte**, vince chi ha vinto in **meno giorni**. Il pulsante ★ in alto la mostra in qualsiasi momento. `server.py` aggiorna il file; senza server il risultato resta nel browser e puoi scaricare il file dalla finestra della classifica.
 
 ## Obiettivo
 
@@ -32,7 +37,7 @@ Ogni grado raggiunto rende le minacce un po' più pericolose (+3% di velocità, 
 
 Si perde per **bancarotta** o con la **reputazione a 0%**.
 
-**Salvataggio dalla bancarotta:** quando i crediti diventano negativi e non restano prestiti disponibili, il gioco si ferma e ti propone di salvarti sacrificando reputazione: **100 crediti per ogni 1%** (opzione minima, oppure con 5% in più di margine). Puoi anche accettare la bancarotta. Se la reputazione non basta a coprire il debito, la partita finisce. Il tasso è in `CFG.rescueCreditsPerRep`.
+**Debito e bancarotta:** quando i crediti vanno sotto zero scattano prima i prestiti automatici (fornitori di emergenza e ONU, se disponibili). Se il saldo resta negativo compare un **avviso** (puoi dichiarare l'emergenza, continuare o accettare la bancarotta) e parte il conto alla rovescia: la **bancarotta** scatta se il debito supera **250 crediti** oppure se resti **in negativo per 6 ore di gioco** consecutive. Tornare sopra zero azzera il conto. Valori in `CFG.debt`.
 
 **Dichiarazione di emergenza (scheda Logistica):** opzione manuale, mai automatica. Dà **2000 crediti al giorno per 5 giorni** (il primo subito, gli altri a mezzanotte) e costa **10% di reputazione ogni giorno** (50% in totale su 5 giorni). Si può chiedere con meno di 1000 crediti, una alla volta; quando i crediti finiscono il gioco si ferma e te la propone al posto della bancarotta. Valori in `CFG.declaration`.
 
@@ -112,6 +117,12 @@ Sotto i 900 px di larghezza tutto passa in un'unica colonna.
 ## File
 
 - `index.html`, `style.css`: interfaccia
-- `game.js`: simulazione, mappa e pannello
+- `js/`: il gioco, diviso in moduli (script classici caricati in ordine da `index.html`, con scope condiviso)
+  - `config.js` parametri (`CFG`), gradi e tipi di aereo · `util.js` geografia, tempo, formattazione · `world.js` lettura di `mondo.csv`
+  - `state.js` stato, economia, prestiti e debito · `actions.js` azioni del giocatore · `fleet.js` decollo, pattuglie, abbattimenti
+  - `ops.js` operazioni speciali, artefatti, addestramenti · `sim.js` passo di simulazione, minacce e combattimento
+  - `endgame.js` vittoria/sconfitta · `save.js` salvataggio locale · `leaderboard.js` classifica
+  - `map.js` mappa su canvas · `panel.js` pannello e HUD · `ui.js` tastiera, modali, profilo e menu iniziale · `main.js` ciclo principale e avvio
 - `land.js`: contorni dei continenti
 - `mondo.csv`: città/basi del mondo
+- `server.py`: server locale che aggiorna `classifica.json` · `classifica.json`: i migliori 10

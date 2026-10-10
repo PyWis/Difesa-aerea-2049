@@ -60,7 +60,8 @@ const A = {
   intercept(threatId, planeId) {
     const th = findThreat(threatId); if (!th || th.state === 'cooldown') return;
     const f = planeId ? findPlane(planeId) : readyOf('fighter')[0];
-    if (!f || f.type !== 'fighter' || f.state !== 'base') { addLog('Nessun caccia pronto alla base (quelli in potenziamento non possono decollare).', 'bad'); return; }
+    if (!f || f.type !== 'fighter' || f.state !== 'base') { addLog('Nessun caccia pronto alla base (servono 1° e 2° pilota; quelli in potenziamento non possono decollare).', 'bad'); return; }
+    if (!crewReady(f)) { addLog(`${f.id} non può decollare: servono 1° e 2° pilota (Caserma).`, 'bad'); return; }
     launch(f);
     f.state = 'flight'; f.target = th.id;
     addLog(`${f.id} decolla verso ${th.id} (${spd(f)} km/h, ${f.mode === 'lead' ? "rotta al punto d'incontro" : 'inseguimento diretto'}, autonomia ${autonomyH().toFixed(1)} h).`);
@@ -80,7 +81,8 @@ const A = {
   strike(threatId, who) {
     const th = findThreat(threatId); if (!th || th.state !== 'cooldown') return;
     const p = TYPES[who] ? readyOf(who)[0] : findPlane(who);
-    if (!p || !isStrike(p) || p.state !== 'base') { addLog('Nessun aereo d\'attacco disponibile alla base: devono rientrare prima di una nuova missione.', 'bad'); return; }
+    if (!p || !isStrike(p) || p.state !== 'base') { addLog('Nessun aereo d\'attacco pronto alla base: servono 1° e 2° pilota e devono essere rientrati da una missione precedente.', 'bad'); return; }
+    if (!crewReady(p)) { addLog(`${p.id} non può decollare: servono 1° e 2° pilota (Caserma).`, 'bad'); return; }
     launch(p);
     p.state = 'flight'; p.target = th.id;
     const eta = dist(p, th) / spd(p) * 60;
@@ -91,13 +93,17 @@ const A = {
     const f = findPlane(fighterId), l = findPlane(leaderId);
     if (!f || f.type !== 'fighter' || f.damaged || f.fast || !l || !isStrike(l) || !isAir(l)) return;
     if (f.state === 'upgrading' || f.state === 'repair') return;
-    if (f.state === 'base') launch(f);
+    if (f.state === 'base') {
+      if (!crewReady(f)) { addLog(`${f.id} non può decollare: servono 1° e 2° pilota (Caserma).`, 'bad'); return; }
+      launch(f);
+    }
     f.state = 'escort'; f.escort = l.id; f.engaged = null; f.target = null; f.aim = null;
     addLog(`${f.id} scorta ${l.id}: attaccherà le minacce entro ${CFG.escortRangeKm} km.`);
   },
   train(planeId, trId) {
     const p = findPlane(planeId), tr = S.trainings.find(x => x.id === trId) || S.trainings[0];
     if (!tr || !p || p.type !== 'tactical' || p.state !== 'base') return;
+    if (!crewReady(p)) { addLog(`${p.id} non può decollare: servono 1° e 2° pilota (Caserma).`, 'bad'); return; }
     launch(p);
     p.state = 'flight'; p.mission = 'train'; p.trainId = tr.id;
     addLog(`${p.id} decolla per l'addestramento a ${tr.base.name}: arrivo tra ${fmtDur(dist(p, tr.base) / spd(p) * 60)}.`);

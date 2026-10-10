@@ -20,7 +20,7 @@ Anche `python3 -m http.server 8000` funziona, ma la classifica resta solo nel br
 
 ## Caserma e piloti (tasto `C`)
 
-Ogni mezzanotte arriva **1 cadetto** con nome, cognome, nazionalità e livello. La nazionalità è casuale in proporzione al peso dello stato in `mondo.csv` (numero di righe: Cina e India pesano molto più dell'Italia); nome e cognome sono estratti dalla tabella della nazionalità in `nomi.json` (86 tabelle, una per stato). Si parte con **10 Sergenti e 10 Marescialli di Volo** da assegnare. La finestra Caserma mette il gioco in pausa finché è aperta.
+Ogni mezzanotte arriva **1 cadetto** con nome, cognome, nazionalità e livello. La nazionalità è casuale in proporzione al peso dello stato in `mondo.csv` (numero di righe: Cina e India pesano molto più dell'Italia); nome e cognome sono estratti dalla tabella della nazionalità in `nomi.json` (86 tabelle, una per stato). Si parte con **10 Sergenti, 10 Marescialli di Volo e 2 Luogotenenti di Volo** da assegnare. La finestra Caserma mette il gioco in pausa finché è aperta.
 
 | Livello | Promozione | Ruolo | Bonus |
 |---------|-----------|-------|-------|
@@ -36,7 +36,7 @@ Ogni mezzanotte arriva **1 cadetto** con nome, cognome, nazionalità e livello. 
 Regole (valori in `CFG.pilots`):
 
 - Giorni e missioni si contano **nel grado** e devono valere entrambi. Una **missione** è un'uscita conclusa con l'atterraggio alla base con il pilota a bordo.
-- Ogni aereo ha un **1° pilota** (comandante) e un **2° pilota**; i piloti si assegnano a terra, dalla finestra Caserma, che offre anche l'assegnazione automatica dei posti vuoti. Un aereo senza piloti vola con il pilota di base, come prima.
+- Ogni aereo ha un **1° pilota** (comandante) e un **2° pilota**; i piloti si assegnano a terra, dalla finestra Caserma, che offre anche l'assegnazione automatica dei posti vuoti. **Un aereo decolla solo con 1° e 2° pilota assegnati** (`CFG.pilots.crewRequired`): senza equipaggio completo non può intercettare, colpire, scortare né fare addestramento. I bombardieri e gli aerei tattici hanno bisogno di un Luogotenente di Volo (o superiore) come 1° pilota, quindi all'inizio se ne possono equipaggiare solo due.
 - I bonus dei piloti a bordo **si sommano** (tetto del 95% di vittoria) e valgono anche per la difesa dei bombardieri contro le imboscate. La pattuglia certa resta al 100%.
 - Un aereo **perso** (abbattuto o senza carburante) porta con sé l'equipaggio, che cade (`CFG.pilots.deathOnLoss`). La difesa jet salva anche i piloti.
 - I gradi dopo il Sergente Scelto non hanno bonus propri oltre a quelli elencati: Luogotenente e Capitano hanno gli stessi bonus del Maresciallo (+10%, +200 km/h).

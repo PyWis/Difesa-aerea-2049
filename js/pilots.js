@@ -21,6 +21,8 @@ const crewPilots = p => (p.crew ? [p.crew.first, p.crew.second].map(pilotById).f
 const planeOfPilot = id => S.planes.find(p => p.crew && (p.crew.first === id || p.crew.second === id));
 const slotMin = (p, slot) => CFG.pilots.slotMinRank[p.type][slot];
 const canSlot = (pl, p, slot) => !inAcademy(pl) && pl.rank >= slotMin(p, slot);
+// un aereo può decollare solo con entrambi i piloti (se crewRequired)
+const crewReady = p => !CFG.pilots.crewRequired || !!(p.crew && pilotById(p.crew.first) && pilotById(p.crew.second));
 const SLOT_NAME = { first: '1° pilota', second: '2° pilota' };
 // bonus alla probabilità di vittoria: si sommano i bonus di tutti i piloti a bordo
 const crewWin = p => crewPilots(p).reduce((s, pl) => s + (pilotRank(pl).win || 0), 0);
@@ -59,7 +61,8 @@ function initPilots() {
   const c = CFG.pilots;
   for (let i = 0; i < c.startSergeants; i++) newPilot(2);
   for (let i = 0; i < c.startMarshals; i++) newPilot(5);
-  addLog(`Caserma: ${c.startSergeants} Sergenti e ${c.startMarshals} Marescialli di Volo attendono l'assegnazione (tasto C).`, 'good');
+  for (let i = 0; i < c.startLieutenants; i++) newPilot(6);
+  addLog(`Caserma: ${c.startSergeants} Sergenti, ${c.startMarshals} Marescialli e ${c.startLieutenants} Luogotenenti di Volo attendono l'assegnazione: senza 1° e 2° pilota nessun aereo decolla (tasto C).`, 'good');
 }
 function arriveCadets() {
   for (let i = 0; i < CFG.pilots.cadetsPerDay; i++) {

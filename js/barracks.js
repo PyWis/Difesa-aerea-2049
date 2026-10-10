@@ -38,7 +38,9 @@ Object.assign(A, {
     slots.sort((a, b) => b.min - a.min);
     let n = 0;
     for (const { p, slot } of slots) {
-      const free = S.pilots.filter(pl => !planeOfPilot(pl.id) && canSlot(pl, p, slot)).sort((a, b) => b.rank - a.rank || b.missions - a.missions);
+      // meglio il pilota con più bonus; a parità il grado più basso, per tenere liberi i più rari
+      const val = pl => (pilotRank(pl).win || 0) + (isStrike(p) ? (pilotRank(pl).strikeSpeed || 0) / 2000 : 0);
+      const free = S.pilots.filter(pl => !planeOfPilot(pl.id) && canSlot(pl, p, slot)).sort((a, b) => val(b) - val(a) || a.rank - b.rank || b.missions - a.missions);
       if (free[0]) { setSlot(p, slot, free[0].id); n++; }
     }
     addLog(n ? `Caserma: ${n} posti assegnati in automatico.` : 'Caserma: nessun posto assegnabile (piloti liberi insufficienti o di grado troppo basso).');
@@ -105,7 +107,7 @@ function barracksHtml() {
   return `<h2>Caserma</h2>
     <p class="note">${ready.length} piloti in servizio (${free} liberi), ${cadets.length} in accademia, ${S.pilotsLost || 0} caduti. Un nuovo cadetto arriva a mezzanotte (tra ${fmtDur(minutesToMidnight(S.t))}). Il tempo è fermo finché la finestra è aperta.</p>
     <h3>Equipaggi</h3>
-    <p class="note">Un aereo senza piloti assegnati vola con il pilota di base. I bonus dei piloti a bordo si sommano${CFG.pilots.deathOnLoss ? '. Se l\'aereo va perso, l\'equipaggio cade con lui' : ''}. L'equipaggio si cambia solo a terra.</p>
+    <p class="note">Un aereo decolla solo con 1° e 2° pilota assegnati. I bonus dei piloti a bordo si sommano${CFG.pilots.deathOnLoss ? '. Se l\'aereo va perso, l\'equipaggio cade con lui' : ''}. L'equipaggio si cambia solo a terra.</p>
     <div class="crew">${crewRows}</div>
     <button class="btn ghost" data-action="autoCrew">Assegna automaticamente i posti vuoti</button>
     <h3>Piloti</h3>

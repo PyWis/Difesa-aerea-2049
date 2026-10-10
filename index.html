@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Difesa Aerea 2049</title>
+<meta name="description" content="Difesa Aerea 2049: un XCOM hardcore dedicato alla logistica. Crediti contati, reputazione fragile, un pianeta da difendere.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -12,7 +13,7 @@
 <header class="topbar">
   <div class="brand">
     <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="16" cy="16" r="7" fill="none" stroke="currentColor" stroke-width="1" opacity=".6"/><path d="M16 3v26M3 16h26" stroke="currentColor" stroke-width="1" opacity=".35"/><path d="M16 16 L26 8" stroke="var(--base)" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="16" r="2" fill="var(--base)"/></svg>
-    <div><h1>Difesa Aerea <b>2049</b></h1><span class="subtitle">Comando difesa planetaria</span></div>
+    <div><h1>Difesa Aerea <b>2049</b></h1><span class="subtitle">XCOM hardcore · logistica di difesa planetaria</span></div>
   </div>
   <div class="hud">
     <div class="stat"><span class="label">Data e ora</span><div class="clock" id="clock">21 marzo 2049, 12:00</div></div>
@@ -28,6 +29,7 @@
     <button data-speed="900" title="15 minuti di gioco al secondo (6)">15m</button>
     <button data-speed="3600" title="1 ora di gioco al secondo, si disattiva da sola dopo 5 ore di gioco (7)">1h</button>
   </div>
+  <button class="iconbtn" data-action="board" title="Classifica" aria-label="Classifica">&#9733;</button>
   <button class="iconbtn" data-action="help" title="Aiuto e scorciatoie (?)" aria-label="Aiuto">?</button>
 </header>
 <main class="layout">
@@ -54,6 +56,20 @@
 </main>
 <div class="modal" id="modal"><div class="card" id="modalCard"></div></div>
 <script src="land.js"></script>
-<script src="game.js"></script>
+<script src="js/config.js"></script>
+<script src="js/util.js"></script>
+<script src="js/world.js"></script>
+<script src="js/state.js"></script>
+<script src="js/actions.js"></script>
+<script src="js/fleet.js"></script>
+<script src="js/ops.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/endgame.js"></script>
+<script src="js/save.js"></script>
+<script src="js/leaderboard.js"></script>
+<script src="js/map.js"></script>
+<script src="js/panel.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>

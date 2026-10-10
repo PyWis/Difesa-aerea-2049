@@ -1,0 +1,153 @@
+'use strict';
+/* Operazioni speciali, artefatti e addestramenti */
+// ---------- Operazioni speciali (Logistica) ----------
+function addBoost(label, n, days, kind) {
+  S.ops.boosts.push({ label, n, kind, until: S.t + days * DAY });
+}
+// caccia usati come ricognitori: quando atterrano restano fermi alla base
+const fighterRecon = () => S.ops.boosts.some(b => b.kind === 'fighters');
+function holdFighter(p) {
+  p.state = 'repair'; p.hold = true; p.repairUntil = S.t + CFG.ops.fighters.holdH * 60;
+}
+const OPS = [
+  { id: 'onu', desc: o => `Attiva +${o.n} ricognitori per ${o.days} giorni. Vale +${o.repBonus}% di reputazione e ${o.medals} medaglia. Massimo 1 ogni ${o.cooldownDays} giorni.`,
+    run(o) {
+      addBoost(o.label, o.n, o.days);
+      addLog(`${o.label}: +${o.n} ricognitori per ${o.days} giorni. Reputazione +${o.repBonus}%, +${o.medals} medaglia.`, 'good');
+      changeRep(o.repBonus); addMedal(o.medals);
+    } },
+  { id: 'coalition', desc: o => `Attiva +${o.n} ricognitori per ${o.days} giorno. Vale +${o.repBonus}% di reputazione e ${o.medals} medaglia. Massimo 1 ogni ${o.cooldownDays} giorni.`,
+    run(o) {
+      addBoost(o.label, o.n, o.days);
+      addLog(`${o.label}: +${o.n} ricognitori per ${o.days} giorno. Reputazione +${o.repBonus}%, +${o.medals} medaglia.`, 'good');
+      changeRep(o.repBonus); addMedal(o.medals);
+    } },
+  { id: 'fighters', desc: o => `I caccia vengono usati come ricognitori: +${o.n} ricognitori per ${o.days} giorno. I caccia alla base e quelli che atterrano durante l'operazione restano fermi ${o.holdH} ore. Gratis, massimo 1 al giorno.`,
+    run(o) {
+      addBoost(o.label, o.n, o.days, 'fighters');
+      const held = planesOf('fighter').filter(f => f.state === 'base');
+      held.forEach(holdFighter);
+      addLog(`${o.label}: +${o.n} ricognitori per ${o.days} giorno. ${held.length ? `${held.map(f => f.id).join(', ')} fermi alla base per ${o.holdH} ore; ` : ''}i caccia che atterrano durante l'operazione restano fermi ${o.holdH} ore.`, 'good');
+    } },
+  { id: 'tactical', desc: o => `Una minaccia in volo a caso atterra alla base più vicina viaggiando a velocità ×${o.speedMult}: reputazione ${o.repNow}% subito, +${o.repLater}% dopo ${o.laterDays} giorno. Una alla volta.`,
+    can: () => S.t < S.fx.recallUntil ? 'Richiamo attivo' : !airThreats().length ? 'Nessuna minaccia in volo' : S.fx.repLater.some(r => r.tactical) ? 'Operazione già in corso' : '',
+    run(o) {
+      const pool = airThreats();
+      const th = pool[Math.floor(Math.random() * pool.length)];
+      const taken = new Set(S.threats.filter(x => x.attack).map(x => x.attack.key));
+      const key = BASES.map((b, i) => i).filter(i => !taken.has(i)).sort((a, b) => dist(th, BASES[a]) - dist(th, BASES[b]))[0];
+      if (key === undefined) return;
+      const tgt = BASES[key];
+      th.state = 'inbound'; th.prey = null; th.rush = true; th.course = (th.course || 0) + 1;
+      th.attack = { key, name: isOwnBase(tgt) ? `${tgt.name} (la tua base)` : tgt.name, lat: tgt.lat, lon: tgt.lon };
+      S.fx.repLater.push({ at: S.t + o.laterDays * DAY, rep: o.repLater, why: 'Mappa Tattica', tactical: true });
+      addLog(`Mappa Tattica: ${th.id} è diretta a velocità ×${o.speedMult} su ${th.attack.name} (${Math.round(dist(th, tgt))} km). Reputazione ${o.repNow}% subito, +${o.repLater}% tra ${o.laterDays} giorno.`, 'bad');
+      changeRep(o.repNow);
+    } },
+];
+function opState(def) {
+  const o = CFG.ops[def.id], at = S.ops.at[def.id];
+  const cd = at == null || !o.cooldownDays ? 0 : at + o.cooldownDays * DAY - S.t;
+  let why = '';
+  if (cd > 0) why = `Disponibile tra ${fmtDur(cd)}`;
+  else if (S.credits < o.cost) why = `Servono ${o.cost} crediti`;
+  else if (def.can) why = def.can();
+  return { why, cd, o };
+}
+function activateOp(id) {
+  const def = OPS.find(d => d.id === id);
+  if (!def || S.over || S.pending || S.askBankrupt) return;
+  const st = opState(def);
+  if (st.why) { addLog(`${st.o.label}: ${st.why.toLowerCase()}.`, 'bad'); return; }
+  if (st.o.cost) { spend(st.o.cost, st.o.label); if (S.over) return; }
+  S.ops.at[id] = S.t;
+  def.run(st.o);
+}
+
+// ---------- Artefatti ----------
+const ARTIFACTS = [
+  { id: 'research', base: 'research', name: 'Ricerca', desc: `Aumenta la ricerca del ${CFG.art.researchBoost}%.`,
+    run() { S.research += CFG.art.researchBoost; addLog(`Artefatto Ricerca: +${CFG.art.researchBoost}% di ricerca (totale ${Math.round(S.research)}%).`, 'good'); } },
+  { id: 'antimatter', base: 'missile', name: 'Missile ad antimateria',
+    desc: `Missile a ${CFG.art.missileSpeed} km/h, ${CFG.art.missileDays} giorni di volo: attacca la minaccia in volo più vicina; a ogni abbattimento il tempo di volo residuo si dimezza e sceglie un altro bersaglio.`,
+    run() {
+      const site = extraOf('missile').site;
+      const m = { id: 'K' + (++S.ids.K), lat: site.lat, lon: site.lon, heading: 0, until: S.t + CFG.art.missileDays * DAY, target: null, trail: [] };
+      S.missiles.push(m);
+      addLog(`Missile ad antimateria ${m.id} lanciato da ${site.name}: ${CFG.art.missileDays} giorni di volo.`, 'good');
+    } },
+  { id: 'quantum', base: 'missile', name: 'Missile quantico', desc: `Abbatte istantaneamente ${CFG.art.quantumKills} minacce in volo a caso.`,
+    can: () => airThreats().length ? '' : 'Nessuna minaccia in volo',
+    run() {
+      const pool = shuffle(airThreats()).slice(0, CFG.art.quantumKills);
+      addLog(`Missile quantico: ${pool.length} ${pool.length === 1 ? 'bersaglio' : 'bersagli'}.`, 'good');
+      for (const th of pool) killThreat(th, `Il missile quantico ha abbattuto ${th.id}.`);
+    } },
+  { id: 'recall', base: 'missile', name: 'Richiamo',
+    desc: `Per ${CFG.art.recallHours} ore le minacce in volo non possono atterrare (attaccare una base) e si dirigono verso la base che ha attivato l'artefatto.`,
+    run() {
+      S.fx.recallUntil = S.t + CFG.art.recallHours * 60; S.fx.recallBase = extraOf('missile').site;
+      addLog(`Richiamo attivo per ${CFG.art.recallHours} ore: le minacce si dirigono verso ${S.fx.recallBase.name}.`, 'good');
+    } },
+  { id: 'quake', base: 'missile', name: 'Terremoto', desc: `Aggiunge da ${CFG.art.quakeMinDays} a ${CFG.art.quakeMaxDays} giorni di attacco a tutte le basi attualmente attaccate: più tempo per bombardarle.`,
+    can: () => S.threats.some(t => t.state === 'cooldown') ? '' : 'Nessuna base sotto attacco',
+    run() {
+      for (const th of S.threats.filter(t => t.state === 'cooldown')) {
+        const d = CFG.art.quakeMinDays + Math.random() * (CFG.art.quakeMaxDays - CFG.art.quakeMinDays);
+        th.cooldownUntil += d * DAY;
+        addLog(`Terremoto a ${th.attack.name}: ${th.id} resta a terra altri ${fmtDur(d * DAY)}.`, 'good');
+      }
+    } },
+  { id: 'pilots', base: 'training', name: 'Addestramento piloti',
+    desc: `Per ${CFG.art.pilotDays} giorni puoi attivare ${CFG.art.pilotBonuses} bonus sui caccia (potenziamento istantaneo, dalla scheda del caccia). I bonus restano anche dopo la scadenza.`,
+    run() { S.fx.pilotUntil = S.t + CFG.art.pilotDays * DAY; S.fx.pilotLeft = CFG.art.pilotBonuses; addLog(`Addestramento piloti: ${CFG.art.pilotBonuses} bonus disponibili per ${CFG.art.pilotDays} giorni (scheda Flotta).`, 'good'); } },
+  { id: 'tech', base: 'training', name: 'Addestramento tecnico', desc: `Tutti gli aerei volano a +${CFG.art.techBonus} km/h per ${CFG.art.techDays} giorni.`,
+    run() { S.fx.techUntil = S.t + CFG.art.techDays * DAY; addLog(`Addestramento tecnico: +${CFG.art.techBonus} km/h a tutti gli aerei per ${CFG.art.techDays} giorni.`, 'good'); } },
+  { id: 'flight', base: 'training', name: 'Addestramento volo',
+    desc: `Per ${CFG.art.flightDays} giorni compare ogni ${CFG.art.flightEveryH} ore una minaccia ferma entro ${CFG.art.flightRadiusKm} km dalla tua base operativa (dura ${CFG.art.flightLifeH} ore). I caccia vincono sempre; niente crediti.`,
+    run() { S.fx.flight = { until: S.t + CFG.art.flightDays * DAY, next: S.t }; addLog(`Addestramento volo attivo per ${CFG.art.flightDays} giorni.`, 'good'); } },
+  { id: 'tactical', base: 'training', name: 'Addestramento tattico', desc: `Crea un addestramento a terra di ${CFG.art.trainDays} giorni in un'altra base (aereo tattico, ${CFG.trainingMedals} medaglia).`,
+    can: () => BASES.some(b => dist(b, S.base) > 500 && !S.trainings.some(t => t.base === b)) ? '' : 'Nessuna base libera',
+    run() { const tr = addTraining(CFG.art.trainDays); addLog(`Addestramento tattico a ${tr.base.name} (${tr.base.state}): invia un aereo tattico entro ${CFG.art.trainDays} giorni.`, 'good'); } },
+  { id: 'monument', base: 'major', name: 'Monumento Minaccia Ignota',
+    desc: `Reputazione +${CFG.art.monumentUp}% per ${CFG.art.monumentDays} giorni; alla disattivazione −${CFG.art.monumentDown}%.`,
+    can: () => S.fx.monumentUntil ? 'Già attivo' : '',
+    run() { changeRep(CFG.art.monumentUp); S.fx.monumentUntil = S.t + CFG.art.monumentDays * DAY; addLog(`Monumento Minaccia Ignota: reputazione +${CFG.art.monumentUp}% per ${CFG.art.monumentDays} giorni.`, 'good'); } },
+];
+// stato di un artefatto: motivo per cui non è attivabile ('' se lo è) e eventuale durata residua
+function artifactState(a) {
+  const at = S.artAt[a.id];
+  const cd = at == null ? 0 : at + CFG.artifactCooldownDays * DAY - S.t;
+  let why = '';
+  if (cd > 0) why = `Riattivabile tra ${fmtDur(cd)}`;
+  else if (researchCharges() < 1) why = `Ricerca insufficiente (${Math.round(S.research)}% su ${CFG.artifactResearch}%)`;
+  else if (S.credits < CFG.artifactCost) why = `Servono ${CFG.artifactCost} crediti`;
+  else if (a.can) why = a.can();
+  return { why, cd };
+}
+function activateArtifact(id) {
+  const a = ARTIFACTS.find(x => x.id === id);
+  if (!a || !extraOf(a.base) || S.over || S.pending) return;
+  const st = artifactState(a);
+  if (st.why) { addLog(`Artefatto ${a.name}: ${st.why.toLowerCase()}.`, 'bad'); return; }
+  spend(CFG.artifactCost, `Artefatto ${a.name}`);
+  if (S.over) return;
+  S.research -= CFG.artifactResearch;
+  S.artAt[a.id] = S.t;
+  addLog(`Artefatto ${a.name} attivato: −${CFG.artifactCost} crediti, −${CFG.artifactResearch}% di ricerca.`);
+  a.run();
+}
+function addTraining(days) {
+  const cand = BASES.filter(b => dist(b, S.base) > 500 && !S.trainings.some(t => t.base === b));
+  if (!cand.length) return null;
+  const tr = { id: 'D' + (++S.ids.D), base: cand[Math.floor(Math.random() * cand.length)], until: S.t + days * DAY };
+  S.trainings.push(tr); panelDirty = true;
+  return tr;
+}
+// minaccia ferma d'addestramento vicino alla base operativa
+function spawnTrainingThreat() {
+  const pos = travel(S.base, Math.random() * 360, Math.sqrt(Math.random()) * CFG.art.flightRadiusKm).pos;
+  const th = { trail: [], id: 'M' + (++S.ids.M), lat: pos.lat, lon: pos.lon, bearing: 0, born: S.t, flightStart: S.t, state: 'flight', attack: null, prey: null, training: true, expires: S.t + CFG.art.flightLifeH * 60, course: 0 };
+  S.threats.push(th);
+  addLog(`Addestramento volo: bersaglio ${th.id} a ${fmtCoord(th)}, ${Math.round(dist(th, S.base))} km dalla base.`);
+}

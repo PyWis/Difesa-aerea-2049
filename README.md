@@ -41,6 +41,7 @@ Regole (valori in `CFG.pilots`):
 - I bonus dei piloti a bordo **si sommano** (tetto del 95% di vittoria) e valgono anche per la difesa dei bombardieri contro le imboscate. La pattuglia certa resta al 100%.
 - Un aereo **perso** (abbattuto o senza carburante) porta con sé l'equipaggio, che cade (`CFG.pilots.deathOnLoss`). La difesa jet salva anche i piloti.
 - **Missione premio:** a mezzanotte, per ogni 5 piloti in servizio dello stesso grado **senza assegnazione**, uno a caso riceve 1 missione (`CFG.freeMissionGroup`), ogni giorno finché non viene promosso.
+- **Capienza:** la caserma ospita **25 piloti** (cadetti compresi). A posti esauriti **l'arrivo dei cadetti si blocca**. Dalla finestra Caserma si compra un posto alla volta: **2500 crediti** fino a 30 posti, **5000** fino a 40, **10000** fino a 50 (massimo). In più, fino a **10 posti riservati agli Ammiragli di Volo**, **50000 crediti** l'uno (solo gli ammiragli li occupano; se sono finiti, un ammiraglio in più occupa un posto ordinario). I piloti in missione spaziale non occupano posto. Valori in `CFG.pilots.barracks`.
 - I gradi dopo il Sergente Scelto non hanno bonus propri oltre a quelli elencati: Luogotenente e Capitano hanno gli stessi bonus del Maresciallo (+10%, +200 km/h).
 
 ## Obiettivo

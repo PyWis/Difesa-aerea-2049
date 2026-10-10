@@ -39,6 +39,36 @@ function patrolSpeedMult(p) {
   return cmd && pilotRank(cmd).captain ? 1 + CFG.pilots.patrolCaptainSpeed : 1;
 }
 
+// ---------- Capienza della caserma ----------
+const barCfg = () => CFG.pilots.barracks;
+// posti ordinari occupati: tutti i piloti tranne gli ammiragli che trovano posto nei posti riservati (gli eccedenti occupano posti ordinari)
+const admiralsIn = () => S.pilots.filter(isAdmiral).length;
+const seatsUsed = () => S.pilots.length - Math.min(admiralsIn(), S.barracks.admSeats);
+const barracksFull = () => seatsUsed() >= S.barracks.seats;
+// prossimo posto ordinario acquistabile: { cost } oppure null se al massimo
+function nextSeat() {
+  const n = S.barracks.seats, t = barCfg().tiers.find(x => n < x.upTo);
+  return t ? { cost: t.cost, to: n + 1 } : null;
+}
+Object.assign(A, {
+  buySeat() {
+    const nx = nextSeat();
+    if (!nx) { addLog('La caserma ha già il numero massimo di posti.', 'bad'); return; }
+    if (S.credits < nx.cost) { addLog(`Servono ${nx.cost} crediti per un posto in caserma.`, 'bad'); return; }
+    spend(nx.cost, 'Posto in caserma'); S.barracks.seats++;
+    addLog(`Caserma: acquistato un posto per ${nx.cost} crediti (ora ${S.barracks.seats}).`, 'good');
+    refreshBarracks(); panelDirty = true;
+  },
+  buyAdmiralSeat() {
+    const b = barCfg();
+    if (S.barracks.admSeats >= b.admiralSeats) { addLog('Tutti i posti per gli Ammiragli di Volo sono già stati acquistati.', 'bad'); return; }
+    if (S.credits < b.admiralCost) { addLog(`Servono ${b.admiralCost} crediti per un posto da Ammiraglio di Volo.`, 'bad'); return; }
+    spend(b.admiralCost, 'Posto da Ammiraglio'); S.barracks.admSeats++;
+    addLog(`Caserma: acquistato un posto riservato agli Ammiragli di Volo per ${b.admiralCost} crediti (ora ${S.barracks.admSeats}/${b.admiralSeats}).`, 'good');
+    refreshBarracks(); panelDirty = true;
+  },
+});
+
 // ---------- Nuovi piloti ----------
 let natWeights = null;
 // la nazionalità è casuale in proporzione al peso dello stato in mondo.csv (numero di righe)
@@ -70,6 +100,7 @@ function initPilots() {
 }
 function arriveCadets() {
   for (let i = 0; i < CFG.pilots.cadetsPerDay; i++) {
+    if (barracksFull()) { addLog(`Caserma al completo (${S.barracks.seats} posti): nessun nuovo cadetto. Acquista posti dalla Caserma (tasto C).`, 'bad'); break; }
     const rank = S.t < S.fx.cadetsUntil ? 1 : 0; // Missione tattica Cadetti: arrivano già cadetti scelti
     const pl = newPilot(rank);
     addLog(`Caserma: arriva il ${rank ? 'cadetto scelto' : 'cadetto'} ${pl.nome} ${pl.cognome} (${pl.naz}), ${PR()[rank].academyDays} giorni di accademia.`);

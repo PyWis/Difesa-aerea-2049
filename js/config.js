@@ -130,6 +130,12 @@ const CFG = {
     startSergeants: 10, startMarshals: 10, startLieutenants: 2,   // piloti disponibili a inizio partita
     crewRequired: true,                       // un aereo decolla solo con 1° e 2° pilota assegnati
     cadetsPerDay: 1,                          // nuovi cadetti a ogni mezzanotte
+    // capienza della caserma: a posti esauriti si blocca l'arrivo dei cadetti. Posti acquistabili a scaglioni (upTo = capienza massima dello scaglione)
+    barracks: {
+      start: 25,
+      tiers: [{ upTo: 30, cost: 2500 }, { upTo: 40, cost: 5000 }, { upTo: 50, cost: 10000 }],
+      admiralSeats: 10, admiralCost: 50000,   // posti riservati agli Ammiragli di Volo (ognuno a admiralCost)
+    },
     deathOnLoss: true,                        // un aereo perso (abbattuto o senza carburante) porta con sé l'equipaggio
     maxWin: 0.95,                             // tetto della probabilità di vittoria con i bonus dei piloti
     patrolCaptainSpeed: 0.25,                 // pattuglia comandata da un Capitano di Volo: velocità +25% a tutti

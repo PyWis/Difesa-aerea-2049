@@ -129,7 +129,7 @@ function maxOf(type) {
 }
 // velocità effettiva: motore sonico ×2, caccia salvato dalla difesa jet ×0,5, equipaggio e capitano di pattuglia
 const techOn = () => S.t < S.fx.techUntil;
-const spd = p => (p.speed + (techOn() ? CFG.art.techBonus : 0) + crewStrikeSpeed(p)) * (S.t < (p.sonicUntil || 0) ? 2 : 1) * (p.damaged ? 0.5 : 1) * (p.joining ? CFG.patrolJoinSpeed : 1) * (p.fast ? CFG.patrolReturnSpeed : 1) * patrolSpeedMult(p);
+const spd = p => (p.speed + (techOn() ? CFG.art.techBonus : 0) + crewStrikeSpeed(p)) * (S.t < (p.sonicUntil || 0) ? 2 : 1) * (p.damaged ? 0.5 : 1) * (p.joining ? CFG.patrolJoinSpeed : 1) * (p.fast ? CFG.patrolReturnSpeed : 1) * (p.recov || 1) * patrolSpeedMult(p);
 const repMult = rep => (CFG.repRecovery.find(r => rep < r.below) || { mult: 1 }).mult;
 const findPlane = id => S.planes.find(p => p.id === id);
 const findThreat = id => S.threats.find(t => t.id === id);

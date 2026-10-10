@@ -40,6 +40,7 @@ function planeStateText(p) {
   if (p.state === 'base') return 'Pronto alla base';
   if (p.state === 'repair') return p.hold ? 'Fermo alla base (ricognizione)' : 'Abbattuto, in ripristino';
   if (p.state === 'upgrading') return `Potenziamento ${Math.floor(p.upgradeMin / DAY * 100)}%`;
+  if (p.state === 'rtb' && p.recov) return `Missione Recupero: rientro ×${p.recov}`;
   if (p.state === 'rtb' && p.fast) return 'Rientro rapido dopo la pattuglia';
   if (p.state === 'rtb') return p.damaged ? 'Danneggiato, rientro a metà velocità' : 'In rientro';
   if (p.state === 'flight' && p.mission === 'raid') { const lb = S.launch.find(x => x.id === p.raidId); return lb ? `Verso la base di lancio ${lb.site.name}, ${Math.round(dist(p, lb.site))} km` : 'In volo'; }
@@ -126,10 +127,10 @@ function planeCard(p, aut) {
     } else extra += `<div class="bar ${frac < 0.25 ? 'warn' : ''}"><i style="width:${frac * 100}%"></i></div><span class="note">Autonomia residua ${fmtDur(left)}</span>`;
     if (p.state === 'flight' || p.state === 'escort') actions = `<button class="btn ghost" data-action="recall" data-a="${p.id}">Richiama</button>`;
     else {
-      const opts = isStrike(p) || p.damaged || p.fast ? [] : S.threats.filter(t => t.state !== 'cooldown').sort((a, b) => dist(p, a) - dist(p, b)).slice(0, 4);
+      const opts = isStrike(p) || p.damaged || p.fast || p.recov ? [] : S.threats.filter(t => t.state !== 'cooldown').sort((a, b) => dist(p, a) - dist(p, b)).slice(0, 4);
       if (opts.length) extra += `<div class="retarget"><span class="note">Nuovo obiettivo:</span>${opts.map(t =>
         `<button class="btn danger" data-action="retarget" data-a="${p.id}" data-b="${t.id}">${t.id}, ${Math.round(dist(p, t))} km</button>`).join('')}</div>`;
-      if (p.type === 'fighter' && !p.damaged && !p.fast) for (const l of S.planes.filter(l => isStrike(l) && isAir(l)))
+      if (p.type === 'fighter' && !p.damaged && !p.fast && !p.recov) for (const l of S.planes.filter(l => isStrike(l) && isAir(l)))
         actions += `<button class="btn" data-action="escort" data-a="${p.id}" data-b="${l.id}">Scorta ${l.id}</button>`;
     }
   }
@@ -141,7 +142,7 @@ function planeCard(p, aut) {
     </div>`;
   return `<div class="plane ${p.state} t-${p.type}${p.patrolId && p.state === 'flight' ? ' patrol' : ''}${p.damaged && p.state === 'rtb' ? ' damaged' : ''}">
     <div class="plane-head"><span class="tag">${p.id}</span>
-      <span class="state">${planeStateText(p)}</span><span class="speed">${spd(p) !== p.speed && (isAir(p) || techOn() || crewStrikeSpeed(p)) ? `${Math.round(spd(p))} km/h${p.damaged ? '' : p.fast ? ' (rientro rapido)' : p.joining ? ' (in raggiungimento)' : S.t < (p.sonicUntil || 0) ? ' (sonico)' : techOn() ? ' (addestramento tecnico)' : ' (equipaggio)'}` : `${p.speed} km/h`}</span></div>
+      <span class="state">${planeStateText(p)}</span><span class="speed">${spd(p) !== p.speed && (isAir(p) || techOn() || crewStrikeSpeed(p)) ? `${Math.round(spd(p))} km/h${p.damaged && !p.recov ? '' : p.recov ? ` (recupero ×${p.recov})` : p.fast ? ' (rientro rapido)' : p.joining ? ' (in raggiungimento)' : S.t < (p.sonicUntil || 0) ? ' (sonico)' : techOn() ? ' (addestramento tecnico)' : ' (equipaggio)'}` : `${p.speed} km/h`}</span></div>
     ${gearRow(p)}
     ${crewLine(p)}
     <span class="note">${winsText(p)}</span>

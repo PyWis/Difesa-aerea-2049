@@ -317,7 +317,7 @@ function step(dt) {
     if (home <= pkm) {
       p.state = 'base'; p.lat = S.base.lat; p.lon = S.base.lon; p.flightMin = 0;
       addLog(`${p.id} è rientrato alla base${p.damaged ? ' ed è di nuovo impiegabile' : ''}.`);
-      p.damaged = false; p.fast = false;
+      p.damaged = false; p.fast = false; p.recov = 0;
       applyBonus(p);
       pilotsLand(p);
       if (p.type === 'fighter' && fighterRecon()) { holdFighter(p); addLog(`${p.id}: usato come ricognitore, resta fermo alla base per ${CFG.ops.fighters.holdH} ore.`); }

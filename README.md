@@ -58,7 +58,7 @@ Raggiungi **100 medaglie**. Le medaglie sono il tuo grado:
 | 95 | Generale |
 | 100 | **Generale Planetario** (il gioco finisce con la vittoria) |
 
-La probabilità standard di vittoria dei caccia contro una minaccia è del **55%** (`CFG.winChance`, minimo 25% salendo di grado). Ogni grado raggiunto rende le minacce un po' più pericolose (+3% di velocità, −2% di probabilità di vittoria in combattimento, +1% di probabilità oraria di attacco, per ogni grado). I valori sono in `CFG` (`diffSpeed`, `diffWin`, `diffAttack`).
+La probabilità standard di vittoria dei caccia contro una minaccia è del **70%** (`CFG.winChance`, minimo 25% salendo di grado). Ogni grado raggiunto rende le minacce un po' più pericolose (+3% di velocità, −2% di probabilità di vittoria in combattimento, +1% di probabilità oraria di attacco, per ogni grado). I valori sono in `CFG` (`diffSpeed`, `diffWin`, `diffAttack`).
 
 Si perde per **bancarotta** o con la **reputazione a 0%**.
 
@@ -73,6 +73,9 @@ Si perde per **bancarotta** o con la **reputazione a 0%**.
 | Ricognitori ONU | 5000 | +50 ricognitori per 3 giorni, +10% reputazione, 1 medaglia (max 1 ogni 7 giorni) |
 | Ricognitori Coalizione | 20000 | +100 ricognitori per 1 giorno, +10% reputazione, 1 medaglia (max 1 ogni 7 giorni) |
 | Caccia-Ricognitori | gratis | +25 ricognitori per 1 giorno; i caccia sono usati come ricognitori: quelli alla base e quelli che atterrano durante l'operazione restano fermi 6 ore (max 1 al giorno) |
+| Missione Recupero | 800 | ×2 la velocità di rientro dei 5 caccia in rientro più vicini alla base (di pattuglia, normali o danneggiati); senza nuove missioni finché non atterrano |
+| Missione Recupero totale | 1500 | ×5 il rientro di tutti i caccia; 20% (per ciascuno) di richiamare anche quelli in missione; senza nuove missioni finché non atterrano |
+| Missione tattica automatica | gratis | una volta ogni 7 giorni: rifornitori a 0 e bloccati 12 ore; ogni aereo tattico in volo (anche in rientro) riceve una nuova missione tattica (base sotto attacco o addestramento più vicini) |
 | Mappa Tattica | gratis | una minaccia in volo a caso atterra alla base libera più vicina a velocità ×2: −10% reputazione subito, +20% dopo 1 giorno (una alla volta) |
 
 I ricognitori aggiuntivi segnalano minacce come quelli normali (in media una ogni 3 giorni ciascuno), senza costo giornaliero. Valori in `CFG.ops`.

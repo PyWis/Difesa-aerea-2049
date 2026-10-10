@@ -9,6 +9,7 @@ const fighterRecon = () => S.ops.boosts.some(b => b.kind === 'fighters');
 function holdFighter(p) {
   p.state = 'repair'; p.hold = true; p.repairUntil = S.t + CFG.ops.fighters.holdH * 60;
 }
+const tacticalPool = () => airThreats().filter(t => !t.raid && t.state !== 'raid');
 const OPS = [
   { id: 'onu', desc: o => `Attiva +${o.n} ricognitori per ${o.days} giorni. Vale +${o.repBonus}% di reputazione e ${o.medals} medaglia. Massimo 1 ogni ${o.cooldownDays} giorni.`,
     run(o) {
@@ -30,9 +31,9 @@ const OPS = [
       addLog(`${o.label}: +${o.n} ricognitori per ${o.days} giorno. ${held.length ? `${held.map(f => f.id).join(', ')} fermi alla base per ${o.holdH} ore; ` : ''}i caccia che atterrano durante l'operazione restano fermi ${o.holdH} ore.`, 'good');
     } },
   { id: 'tactical', desc: o => `Una minaccia in volo a caso atterra alla base più vicina viaggiando a velocità ×${o.speedMult}: reputazione ${o.repNow}% subito, +${o.repLater}% dopo ${o.laterDays} giorno. Una alla volta.`,
-    can: () => S.t < S.fx.recallUntil ? 'Richiamo attivo' : !airThreats().length ? 'Nessuna minaccia in volo' : S.fx.repLater.some(r => r.tactical) ? 'Operazione già in corso' : '',
+    can: () => S.t < S.fx.recallUntil ? 'Richiamo attivo' : !tacticalPool().length ? 'Nessuna minaccia in volo' : S.fx.repLater.some(r => r.tactical) ? 'Operazione già in corso' : '',
     run(o) {
-      const pool = airThreats();
+      const pool = tacticalPool();
       const th = pool[Math.floor(Math.random() * pool.length)];
       const taken = new Set(S.threats.filter(x => x.attack).map(x => x.attack.key));
       const key = BASES.map((b, i) => i).filter(i => !taken.has(i)).sort((a, b) => dist(th, BASES[a]) - dist(th, BASES[b]))[0];
@@ -76,6 +77,15 @@ const ARTIFACTS = [
       S.missiles.push(m);
       addLog(`Missile ad antimateria ${m.id} lanciato da ${site.name}: ${CFG.art.missileDays} giorni di volo.`, 'good');
     } },
+  { id: 'sublunar', base: 'research', space: 0, name: CFG.art.space[0].name,
+    desc: `+${CFG.art.space[0].sergeantMissions} missione a ogni sergente, sergente scelto e sergente capo senza assegnazione. ${CFG.art.space[0].send} sergenti senza assegnazione partono per la missione spaziale (tolti dal gioco); dopo ${CFG.art.space[0].days} giorni arriva un ${CFG.pilots.ranks[CFG.art.space[0].arrive].name} e la reputazione cala del ${CFG.art.space[0].repLoss}%.`,
+    can: () => spaceBlock(CFG.art.space[0]), run() { runSpace(CFG.art.space[0]); } },
+  { id: 'mars', base: 'research', space: 1, name: CFG.art.space[1].name,
+    desc: `${CFG.art.space[1].send} marescialli di volo senza assegnazione partono per la missione spaziale (tolti dal gioco); dopo ${CFG.art.space[1].days} giorni arriva un ${CFG.pilots.ranks[CFG.art.space[1].arrive].name} e la reputazione cala dell'${CFG.art.space[1].repLoss}%.`,
+    can: () => spaceBlock(CFG.art.space[1]), run() { runSpace(CFG.art.space[1]); } },
+  { id: 'venus', base: 'research', space: 2, name: CFG.art.space[2].name,
+    desc: `${CFG.art.space[2].send} capitani di volo senza assegnazione partono per la missione spaziale (tolti dal gioco); dopo ${CFG.art.space[2].days} giorni arriva un ${CFG.pilots.ranks[CFG.art.space[2].arrive].name}, che non partecipa ai voli ed è un punteggio extra.`,
+    can: () => spaceBlock(CFG.art.space[2]), run() { runSpace(CFG.art.space[2]); } },
   { id: 'quantum', base: 'missile', name: 'Missile quantico', desc: `Abbatte istantaneamente ${CFG.art.quantumKills} minacce in volo a caso.`,
     can: () => airThreats().length ? '' : 'Nessuna minaccia in volo',
     run() {
@@ -98,9 +108,9 @@ const ARTIFACTS = [
         addLog(`Terremoto a ${th.attack.name}: ${th.id} resta a terra altri ${fmtDur(d * DAY)}.`, 'good');
       }
     } },
-  { id: 'pilots', base: 'training', name: 'Addestramento piloti',
+  { id: 'pilots', base: 'training', name: 'Aggiornamento piloti',
     desc: `Per ${CFG.art.pilotDays} giorni puoi attivare ${CFG.art.pilotBonuses} bonus sui caccia (potenziamento istantaneo, dalla scheda del caccia). I bonus restano anche dopo la scadenza.`,
-    run() { S.fx.pilotUntil = S.t + CFG.art.pilotDays * DAY; S.fx.pilotLeft = CFG.art.pilotBonuses; addLog(`Addestramento piloti: ${CFG.art.pilotBonuses} bonus disponibili per ${CFG.art.pilotDays} giorni (scheda Flotta).`, 'good'); } },
+    run() { S.fx.pilotUntil = S.t + CFG.art.pilotDays * DAY; S.fx.pilotLeft = CFG.art.pilotBonuses; addLog(`Aggiornamento piloti: ${CFG.art.pilotBonuses} bonus disponibili per ${CFG.art.pilotDays} giorni (scheda Flotta).`, 'good'); } },
   { id: 'tech', base: 'training', name: 'Addestramento tecnico', desc: `Tutti gli aerei volano a +${CFG.art.techBonus} km/h per ${CFG.art.techDays} giorni.`,
     run() { S.fx.techUntil = S.t + CFG.art.techDays * DAY; addLog(`Addestramento tecnico: +${CFG.art.techBonus} km/h a tutti gli aerei per ${CFG.art.techDays} giorni.`, 'good'); } },
   { id: 'flight', base: 'training', name: 'Addestramento volo',
@@ -109,6 +119,21 @@ const ARTIFACTS = [
   { id: 'tactical', base: 'training', name: 'Addestramento tattico', desc: `Crea un addestramento a terra di ${CFG.art.trainDays} giorni in un'altra base (aereo tattico, ${CFG.trainingMedals} medaglia).`,
     can: () => BASES.some(b => dist(b, S.base) > 500 && !S.trainings.some(t => t.base === b)) ? '' : 'Nessuna base libera',
     run() { const tr = addTraining(CFG.art.trainDays); addLog(`Addestramento tattico a ${tr.base.name} (${tr.base.state}): invia un aereo tattico entro ${CFG.art.trainDays} giorni.`, 'good'); } },
+  { id: 'tacSgt', base: 'training', name: 'Missione tattica Sergenti',
+    desc: `+${CFG.art.tacSergeants} missioni a ogni sergente, sergente scelto e sergente capo.`,
+    can: () => pilotsWhere(pl => pl.rank >= 2 && pl.rank <= 4).length ? '' : 'Nessun sergente in servizio',
+    run() { for (const pl of pilotsWhere(pl => pl.rank >= 2 && pl.rank <= 4)) giveMission(pl, CFG.art.tacSergeants); addLog(`Missione tattica Sergenti: +${CFG.art.tacSergeants} missioni a ogni sergente.`, 'good'); refreshBarracks(); } },
+  { id: 'tacOff', base: 'training', name: 'Missione tattica Ufficiali',
+    desc: `+${CFG.art.tacOfficers} missione a tutti i piloti in servizio (ufficiali e sergenti).`,
+    can: () => pilotsWhere(pl => pl.rank >= 2 && !isLastRank(pl)).length ? '' : 'Nessun pilota promovibile',
+    run() { for (const pl of pilotsWhere(pl => pl.rank >= 2 && !isLastRank(pl))) giveMission(pl, CFG.art.tacOfficers); addLog(`Missione tattica Ufficiali: +${CFG.art.tacOfficers} missione a tutti i piloti.`, 'good'); refreshBarracks(); } },
+  { id: 'tacCad', base: 'training', name: 'Missione tattica Cadetti',
+    desc: `Per ${CFG.art.cadetDays} giorni tutti i cadetti in uscita sono cadetti scelti. Per ${CFG.art.cadetMissionDays} giorni i cadetti che diventano sergenti hanno già ${CFG.art.cadetMissions} missioni effettuate.`,
+    run() {
+      S.fx.cadetsUntil = S.t + CFG.art.cadetDays * DAY; S.fx.cadetMissionsUntil = S.t + CFG.art.cadetMissionDays * DAY;
+      for (const pl of S.pilots.filter(pl => pl.rank === 0)) { pl.rank = 1; pl.since = S.t; pl.academyUntil = Math.min(pl.academyUntil, S.t + PR()[1].academyDays * DAY); }
+      addLog(`Missione tattica Cadetti: cadetti scelti per ${CFG.art.cadetDays} giorni; per ${CFG.art.cadetMissionDays} giorni i nuovi sergenti hanno ${CFG.art.cadetMissions} missioni già effettuate.`, 'good'); refreshBarracks();
+    } },
   { id: 'monument', base: 'major', name: 'Monumento Minaccia Ignota',
     desc: `Reputazione +${CFG.art.monumentUp}% per ${CFG.art.monumentDays} giorni; alla disattivazione −${CFG.art.monumentDown}%.`,
     can: () => S.fx.monumentUntil ? 'Già attivo' : '',

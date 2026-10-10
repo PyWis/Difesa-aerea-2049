@@ -36,6 +36,7 @@ def clean(e):
         'id': s('id', 40), 'nome': s('nome', 24), 'cognome': s('cognome', 24), 'stato': s('stato', 40),
         'medaglie': int(round(_num(e.get('medaglie'), 0, 100))), 'giorni': round(_num(e.get('giorni'), 0, 1e5), 2),
         'vittoria': e.get('vittoria') is True, 'esito': s('esito', 40), 'grado': s('grado', 30),
+        'ammiragli': int(round(_num(e.get('ammiragli'), 0, 1e4))),
         'minacce': int(round(_num(e.get('minacce'), 0, 1e6))), 'crediti': int(round(_num(e.get('crediti'), -1e9, 1e9))),
         'data': s('data', 40),
     }

@@ -41,7 +41,7 @@ function shotDown(p, msg) {
     p.gear = null; p.damaged = true;
     detach(p); goHome(p);
     addLog(`${msg} La difesa jet lo salva: rientra alla base a velocità dimezzata e non è impiegabile fino all'arrivo.`, 'good');
-    return;
+    return false;
   }
   if (p.type === 'fighter') removePlane(p, `${msg} Penale ${pen} crediti.`);
   else {
@@ -52,6 +52,7 @@ function shotDown(p, msg) {
     detach(p);
   }
   spend(pen, 'Penale per aereo abbattuto');
+  return p.type === 'fighter'; // true se il caccia è stato ucciso
 }
 function detach(p) {
   for (const e of S.planes) if (e.state === 'escort' && e.escort === p.id) { goHome(e); addLog(`${e.id}: nessuno da scortare, rientro.`); }
@@ -66,5 +67,8 @@ function killThreat(th, msg, reward = CFG.killReward, groundResearch = 0) {
   S.credits += reward;
   const rg = addResearch(air ? randInt(CFG.researchKill[0], CFG.researchKill[1]) : groundResearch);
   addLog(`${msg} +${reward} crediti.${rg ? ` Ricerca +${rg}% (totale ${Math.round(S.research)}%).` : ''}`, 'good');
+  if (th.apoc) apocDefeated(th);
 }
-const airThreats = () => S.threats.filter(t => t.state !== 'cooldown' && !t.training);
+// minacce in cielo (tutte) e quelle colpibili da missili e operazioni speciali (non la minaccia dell'apocalisse)
+const skyThreats = () => S.threats.filter(t => t.state !== 'cooldown' && !t.training);
+const airThreats = () => skyThreats().filter(t => !t.apoc);

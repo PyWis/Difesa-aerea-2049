@@ -31,7 +31,8 @@ Ogni mezzanotte arriva **1 cadetto** con nome, cognome, nazionalità e livello. 
 | Sergente Capo | 7 giorni e 10 missioni | 2° pilota su tutti i mezzi | +5% negli scontri |
 | Maresciallo di Volo | 20 missioni | 2° pilota su tutti; 1° pilota di un caccia | +10% negli scontri; +200 km/h su bombardieri e tattici |
 | Luogotenente di Volo | 50 missioni | 2° pilota su tutti; 1° pilota di caccia, bombardieri e tattici | come sopra |
-| Capitano di Volo | - | come sopra | se comanda una pattuglia, +25% di velocità a tutti i suoi mezzi |
+| Capitano di Volo | - (solo con la Missione marziana ONU o per promozione dal Luogotenente) | come sopra | se comanda una pattuglia, +25% di velocità a tutti i suoi mezzi |
+| Ammiraglio di Volo | solo con la Missione venusiana ONU | non partecipa ai voli | **punteggio extra** (registrato in classifica) |
 
 Regole (valori in `CFG.pilots`):
 
@@ -39,6 +40,7 @@ Regole (valori in `CFG.pilots`):
 - Ogni aereo ha un **1° pilota** (comandante) e un **2° pilota**; i piloti si assegnano a terra, dalla finestra Caserma, che offre anche l'assegnazione automatica dei posti vuoti. **Un aereo decolla solo con 1° e 2° pilota assegnati** (`CFG.pilots.crewRequired`): senza equipaggio completo non può intercettare, colpire, scortare né fare addestramento. I bombardieri e gli aerei tattici hanno bisogno di un Luogotenente di Volo (o superiore) come 1° pilota, quindi all'inizio se ne possono equipaggiare solo due.
 - I bonus dei piloti a bordo **si sommano** (tetto del 95% di vittoria) e valgono anche per la difesa dei bombardieri contro le imboscate. La pattuglia certa resta al 100%.
 - Un aereo **perso** (abbattuto o senza carburante) porta con sé l'equipaggio, che cade (`CFG.pilots.deathOnLoss`). La difesa jet salva anche i piloti.
+- **Missione premio:** a mezzanotte, per ogni 5 piloti in servizio dello stesso grado **senza assegnazione**, uno a caso riceve 1 missione (`CFG.freeMissionGroup`), ogni giorno finché non viene promosso.
 - I gradi dopo il Sergente Scelto non hanno bonus propri oltre a quelli elencati: Luogotenente e Capitano hanno gli stessi bonus del Maresciallo (+10%, +200 km/h).
 
 ## Obiettivo
@@ -56,7 +58,7 @@ Raggiungi **100 medaglie**. Le medaglie sono il tuo grado:
 | 95 | Generale |
 | 100 | **Generale Planetario** (il gioco finisce con la vittoria) |
 
-Ogni grado raggiunto rende le minacce un po' più pericolose (+3% di velocità, −2% di probabilità di vittoria in combattimento, +1% di probabilità oraria di attacco, per ogni grado). I valori sono in `CFG` (`diffSpeed`, `diffWin`, `diffAttack`).
+La probabilità standard di vittoria dei caccia contro una minaccia è del **55%** (`CFG.winChance`, minimo 25% salendo di grado). Ogni grado raggiunto rende le minacce un po' più pericolose (+3% di velocità, −2% di probabilità di vittoria in combattimento, +1% di probabilità oraria di attacco, per ogni grado). I valori sono in `CFG` (`diffSpeed`, `diffWin`, `diffAttack`).
 
 Si perde per **bancarotta** o con la **reputazione a 0%**.
 
@@ -97,12 +99,46 @@ Si acquistano in ordine; per ognuna si rifà la scelta tra 10 località casuali 
 
 | Base | Costo | Cosa dà |
 |------|------:|---------|
-| Ricerca (2ª) | 10.000 | Ricerca: +1-10% per minaccia abbattuta in volo, +12% per bombardamento, +20% per missione tattica (non di addestramento). Può superare il 100%. Artefatto *Ricerca* (+300%) |
+| Ricerca (2ª) | 10.000 | Ricerca: +1-10% per minaccia abbattuta in volo, +12% per bombardamento, +20% per missione tattica (non di addestramento). Può superare il 100%. Artefatti *Ricerca* (+300%), Missione sublunare / marziana / venusiana ONU |
 | Missilistica (3ª) | 25.000 | Missile ad antimateria, Missile quantico, Richiamo, Terremoto |
-| Addestramento (4ª) | 50.000 | Addestramento piloti, tecnico, volo, tattico |
+| Addestramento (4ª) | 50.000 | Aggiornamento piloti (5 bonus), Addestramento tecnico, volo, tattico; Missione tattica Sergenti, Ufficiali, Cadetti |
 | Maggiore (5ª) | 100.000 | +10% reputazione all'acquisto, +1 medaglia al giorno con reputazione al 100%, artefatto Monumento Minaccia Ignota |
 
 Ogni attivazione di artefatto costa **2500 crediti e il 100% di ricerca**; lo stesso artefatto non si riattiva prima di 3 giorni. Durate non specificate: 3 giorni (piloti, tecnico, volo, monumento), 1 giorno (richiamo). I bersagli dell'addestramento volo compaiono entro 600 km dalla base operativa e svaniscono dopo 24 ore. Tutti i valori sono in `CFG` (`bases`, `art`, ...).
+
+### Artefatti dell'Accademia (base di addestramento)
+
+| Artefatto | Effetto |
+|-----------|---------|
+| Aggiornamento piloti (ex Addestramento piloti) | per 3 giorni, 5 bonus di velocità da assegnare ai caccia |
+| Missione tattica Sergenti | +3 missioni a ogni sergente, sergente scelto e sergente capo |
+| Missione tattica Ufficiali | +1 missione a tutti i piloti in servizio (ufficiali e sergenti) |
+| Missione tattica Cadetti | per 30 giorni i cadetti in uscita sono già cadetti scelti; per 3 giorni i cadetti che diventano sergenti hanno 3 missioni già effettuate |
+
+### Missioni spaziali ONU (base ricerca)
+
+I piloti partono **senza assegnazione**, sono tolti dal gioco; dopo 3 giorni ne arriva uno di grado superiore e la reputazione cala.
+
+| Artefatto | Partono | Arriva (dopo 3 giorni) | Reputazione |
+|-----------|---------|------------------------|-------------|
+| Missione sublunare ONU | 10 sergenti (sergente, scelto, capo) senza assegnazione; prima +1 missione a tutti i sergenti senza assegnazione | 1 Maresciallo di Volo | −60% |
+| Missione marziana ONU | 10 marescialli senza assegnazione | 1 Capitano di Volo | −80% |
+| Missione venusiana ONU | 10 capitani senza assegnazione | 1 **Ammiraglio di Volo** (non vola, punteggio extra) | - |
+
+## Minacce speciali
+
+### Minaccia dell'apocalisse
+- Compare **il 15 di ogni mese a mezzanotte** (la prima il 15 aprile), ad almeno **5000 km** da una base attiva scelta a caso (operativa o secondaria), e vola dritta su di essa a **500 km/h**. Non è segnalata dai ricognitori e non è colpita da missili, missile quantico, Mappa Tattica e Richiamo.
+- **Probabilità di sconfitta dei caccia: 90% fissa** per i primi *(N−3)* caccia uccisi, dove N è il mese di gioco (aprile 1, maggio 2, giugno 3, luglio 4…): quindi 0 fino a giugno, 1 a luglio, 2 ad agosto… Poi vale la probabilità normale contro le minacce. Valori in `CFG.apoc` (`fixedLoss`, `fixedOffset`).
+- Ogni **caccia ucciso** si trasforma in **3 minacce** (nel punto dello scontro). Un caccia salvato dalla difesa jet non è ucciso.
+- **Sconfiggerla:** +5 medaglie e **1 giorno senza nuove minacce** (ricognitori, lanci e nuove basi di lancio sospesi).
+- Se raggiunge la **base principale**: game over. Se raggiunge una **base secondaria**, le distrugge **tutte** (si possono riacquistare) e prosegue verso la base principale a **1500 km/h**.
+
+### Basi di lancio delle minacce
+- Il **1° di ogni mese** una base del mondo (tra 2000 e 6000 km dalla tua base operativa) diventa **Base di lancio**: ogni **5 ore** lancia una **minaccia bombardiera** contro una delle tue basi attive. Se la colpisce, **la distrugge** (la base principale: game over; una secondaria: va riacquistata) e poi viaggia come una minaccia normale. Si ferma con i caccia come qualsiasi minaccia. La nuova base di lancio sostituisce quella del mese precedente.
+- Per distruggere la base di lancio serve un **bombardiere** (scheda *Minacce* o scheda del bombardiere): **reputazione +5%**.
+- **Base di lancio extra:** dal grado **Tenente** in su, se non ci sono minacce in cielo, ne compare una (una alla volta) che lancia una minaccia normale ogni 5 ore. Distrutta con un bombardiere vale **una minaccia eliminata**.
+- Valori in `CFG.launch`.
 
 ## Interfaccia (desktop)
 
@@ -144,7 +180,7 @@ Sotto i 900 px di larghezza tutto passa in un'unica colonna.
 - `js/`: il gioco, diviso in moduli (script classici caricati in ordine da `index.html`, con scope condiviso)
   - `config.js` parametri (`CFG`), gradi e tipi di aereo · `util.js` geografia, tempo, formattazione · `world.js` lettura di `mondo.csv`
   - `state.js` stato, economia, prestiti e debito · `actions.js` azioni del giocatore · `fleet.js` decollo, pattuglie, abbattimenti
-  - `ops.js` operazioni speciali, artefatti, addestramenti · `pilots.js` piloti, gradi e bonus · `barracks.js` finestra Caserma · `sim.js` passo di simulazione, minacce e combattimento
+  - `ops.js` operazioni speciali, artefatti, addestramenti · `special.js` minaccia dell'apocalisse, basi di lancio, missioni spaziali ONU · `pilots.js` piloti, gradi e bonus · `barracks.js` finestra Caserma · `sim.js` passo di simulazione, minacce e combattimento
   - `endgame.js` vittoria/sconfitta · `save.js` salvataggio locale · `leaderboard.js` classifica
   - `map.js` mappa su canvas · `panel.js` pannello e HUD · `ui.js` tastiera, modali, profilo e menu iniziale · `main.js` ciclo principale e avvio
 - `land.js`: contorni dei continenti

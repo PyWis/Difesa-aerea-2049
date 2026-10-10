@@ -42,6 +42,7 @@ function planeStateText(p) {
   if (p.state === 'upgrading') return `Potenziamento ${Math.floor(p.upgradeMin / DAY * 100)}%`;
   if (p.state === 'rtb' && p.fast) return 'Rientro rapido dopo la pattuglia';
   if (p.state === 'rtb') return p.damaged ? 'Danneggiato, rientro a metà velocità' : 'In rientro';
+  if (p.state === 'flight' && p.mission === 'raid') { const lb = S.launch.find(x => x.id === p.raidId); return lb ? `Verso la base di lancio ${lb.site.name}, ${Math.round(dist(p, lb.site))} km` : 'In volo'; }
   if (p.state === 'escort') return p.engaged ? `Scorta ${p.escort}, ingaggia ${p.engaged}` : `Scorta ${p.escort}`;
   const trm = p.mission === 'train' && S.trainings.find(x => x.id === p.trainId);
   if (trm) return `Verso ${trm.base.name} (addestramento), ${Math.round(dist(p, trm.base))} km`;
@@ -100,6 +101,8 @@ function planeCard(p, aut) {
       const eta = dist(S.base, sel) / spd(p) * 60;
       actions += `<button class="btn danger" data-action="strike" data-a="${sel.id}" data-b="${p.id}">Colpisci ${sel.id} (${fmtDur(eta)})</button>`;
     }
+    if (p.type === 'bomber' && p.state === 'base' && crewReady(p))
+      for (const lb of S.launch) actions += `<button class="btn danger" data-action="raid" data-a="${lb.id}" data-b="${p.id}">Bombarda base di lancio ${lb.site.name} (${fmtDur(dist(S.base, lb.site) / spd(p) * 60)})</button>`;
   } else {
     const pa = p.autH || aut;
     const left = pa * 60 - p.flightMin;
@@ -218,7 +221,7 @@ function renderPanelBody() {
 
   const fighters = planesOf('fighter'), strikers = S.planes.filter(isStrike);
   const readyF = readyOf('fighter').length, readyB = readyOf('bomber').length, readyA = readyOf('tactical').length;
-  const order = { hunting: 0, cooldown: 1, inbound: 2, flight: 2 };
+  const order = { apoc: -1, hunting: 0, raid: 0, cooldown: 1, inbound: 2, flight: 2 };
   const threatRows = [...S.threats].sort((a, b) => order[a.state] - order[b.state] || dist(a, S.base) - dist(b, S.base)).map(th => {
     const chasers = S.planes.filter(f => (f.target === th.id && f.state === 'flight') || f.engaged === th.id).map(f => f.id);
     const sel = S.selectedThreat === th.id;
@@ -230,11 +233,13 @@ function renderPanelBody() {
         <button class="btn danger" data-action="strike" data-a="${th.id}" data-b="tactical" ${readyA ? '' : 'disabled'}>Tattico</button>
       </div></div>`;
     let status;
-    if (th.training) status = `Bersaglio d'addestramento: i caccia vincono sempre, nessun credito. Si dissolve tra ${fmtDur(th.expires - S.t)}`;
+    if (th.apoc) status = `<b class="warn-text">MINACCIA DELL'APOCALISSE</b> verso ${th.goal.name}${th.goal.kind === 'main' ? ' (base principale)' : ''}: ${Math.round(dist(th, th.goal))} km a ${th.speed} km/h, arrivo tra ${fmtDur(dist(th, th.goal) / th.speed * 60)}. ${th.fkills < th.fixedKills ? `Sconfitta dei caccia fissa al ${Math.round(CFG.apoc.fixedLoss * 100)}% ancora per ${th.fixedKills - th.fkills} caccia uccisi.` : 'Probabilità di sconfitta normale.'} Ogni caccia ucciso diventa ${CFG.apoc.split} minacce; sconfitta: +${CFG.apoc.medals} medaglie.`;
+    else if (th.state === 'raid') status = `<b class="warn-text">Minaccia bombardiera</b> da ${th.from} verso ${th.goal.name}${th.goal.kind === 'main' ? ' (base principale)' : ''}: ${Math.round(dist(th, th.goal))} km, arrivo tra ${fmtDur(dist(th, th.goal) / thSpeed() * 60)}. Se colpisce la base la distrugge.`;
+    else if (th.training) status = `Bersaglio d'addestramento: i caccia vincono sempre, nessun credito. Si dissolve tra ${fmtDur(th.expires - S.t)}`;
     else if (th.state === 'hunting') status = `<b class="warn-text">Va incontro a ${th.prey}, ${Math.round(dist(th, findPlane(th.prey) || th))} km</b>`;
     else status = S.t - th.flightStart < CFG.attackAfterH * 60 ? `Può attaccare tra ${fmtDur(CFG.attackAfterH * 60 - (S.t - th.flightStart))}` : 'Può attaccare in qualsiasi momento';
     return `<div class="row ${sel ? 'selected' : ''}"><span class="tag" style="--tag:var(--threat)">${th.id}</span>
-      <div class="info"><span class="state">${Math.round(dist(th, S.base))} km dalla base</span><br>${th.training ? fmtCoord(th) : `${fmtCoord(th)}, rotta ${Math.round(th.bearing)}°`}<br>${status}${chasers.length ? `<br>Inseguita da ${chasers.join(', ')}` : ''}</div>
+      <div class="info"><span class="state">${th.apoc ? 'Apocalisse · ' : ''}${Math.round(dist(th, S.base))} km dalla base</span><br>${th.training ? fmtCoord(th) : `${fmtCoord(th)}, rotta ${Math.round(th.bearing)}°`}<br>${status}${chasers.length ? `<br>Inseguita da ${chasers.join(', ')}` : ''}</div>
       <div class="actions">${selBtn}
         <button class="btn danger" data-action="intercept" data-a="${th.id}" ${readyF ? '' : 'disabled'}>Intercetta</button>
         ${chasersOf(th).length >= CFG.patrolSize ? `<button class="btn" data-action="patrol" data-a="${th.id}" title="Due caccia raggiungono il più vicino a velocità ×${CFG.patrolJoinSpeed}; al contatto successo certo">Forma pattuglia</button>` : ''}
@@ -249,22 +254,30 @@ function renderPanelBody() {
       <div><b>${S.kills}</b><span>Minacce eliminate</span></div>
       <div><b>${S.medals}</b><span>Medaglie</span></div>
       <div><b>${(S.t / DAY).toFixed(1)}</b><span>Giorni di servizio</span></div>
+      ${S.pilots.some(isAdmiral) ? `<div><b>${S.pilots.filter(isAdmiral).length}</b><span>Ammiragli di Volo</span></div>` : ''}
     </div>
     <p class="note">${S.profile ? `Comandante ${esc(S.profile.nome)} ${esc(S.profile.cognome)} (${esc(S.profile.stato)}). ` : ''}${S.base.zone}, ${S.base.state}, ${S.base.cont}.</p>
     ${helpBox('base', 'Come funzionano medaglie e reputazione', `<p class="note">Punti medaglia: ${S.medals} (al massimo 1 al giorno: ${CFG.medalChancePerPoint * 100}% di probabilità per ogni punto di reputazione che andrebbe oltre il 100%). La reputazione si recupera con i ricognitori e cala di ${CFG.repLossCooldown}% per ogni attacco portato a termine.</p>`)}
   </section>`;
+  const readyBomb = readyOf('bomber').length;
+  const launchRows = S.launch.map(lb => `<div class="row attacking"><span class="tag" style="--tag:var(--threat)">${lb.id}</span>
+      <div class="info"><span class="state">Base di lancio${lb.kind === 'extra' ? ' extra' : ''}: ${lb.site.name}</span><br>${lb.site.state} · ${Math.round(dist(S.base, lb.site))} km dalla base<br>${calm() ? 'Lanci sospesi' : `Prossimo lancio tra ${fmtDur(lb.next - S.t)}`} (${lb.kind === 'extra' ? 'minaccia' : 'minaccia bombardiera'} ogni ${CFG.launch.everyH} ore). ${lb.kind === 'extra' ? 'Distrutta con un bombardiere: una minaccia eliminata.' : `Distrutta con un bombardiere: reputazione +${CFG.launch.rep}%.`}</div>
+      <div class="actions"><button class="btn danger" data-action="raid" data-a="${lb.id}" ${readyBomb ? '' : 'disabled'}>Bombarda (${readyBomb ? fmtDur(dist(S.base, lb.site) / spd(readyOf('bomber')[0]) * 60) : 'nessun bombardiere'})</button></div></div>`).join('');
+  const nextApoc = nextDayOfMonth(S.t, CFG.apoc.day);
   const secThreats = `
   <section class="block">
     <h2>Minacce <span class="count">${S.threats.length}</span></h2>
+    <p class="note">${calm() ? `Calma: nessuna nuova minaccia per ${fmtDur(S.fx.calmUntil - S.t)}. ` : ''}Prossima minaccia dell'apocalisse: ${fmtDate(nextApoc)}.</p>
     ${threatRows}
+    ${launchRows ? `<h3>Basi di lancio delle minacce</h3>${launchRows}` : ''}
     ${S.threats.length ? helpBox('threats', 'Regole di ingaggio', `<p class="note">In volo si colpiscono con i caccia (${Math.round(winCh() * 100)}% al contatto, +${CFG.killReward}). Mentre attaccano una base solo bombardiere (+${CFG.killReward}, −${CFG.rebuildCost} di ricostruzione) e aereo tattico (+${CFG.tacticalReward}) possono eliminarle.</p>`) : ''}
   </section>`;
-  const readyPilots = S.pilots.filter(pl => !inAcademy(pl)), freePilots = readyPilots.filter(pl => !planeOfPilot(pl.id)).length;
+  const readyPilots = S.pilots.filter(pl => !inAcademy(pl)), freePilots = freePilotsOf(() => true).length, admirals = readyPilots.filter(isAdmiral).length;
   const secBarracks = `
   <section class="block">
     <h2>Caserma <span class="count">${readyPilots.length} piloti</span>
       <button class="btn ghost" data-action="barracks">Apri la caserma</button></h2>
-    <p class="note">${freePilots} piloti liberi, ${S.pilots.length - readyPilots.length} in accademia, ${S.pilotsLost || 0} caduti. Ogni giorno arriva un cadetto. Assegna i piloti agli aerei per bonus negli scontri e in velocità (tasto <kbd>C</kbd>).</p>
+    <p class="note">${freePilots} piloti liberi, ${S.pilots.length - readyPilots.length} in accademia, ${S.pilotsLost || 0} caduti${S.pilotsSpace ? `, ${S.pilotsSpace} in missione spaziale` : ''}${admirals ? `. Ammiragli di Volo (punteggio extra): ${admirals}` : ''}. Ogni giorno arriva un cadetto; ogni ${CFG.freeMissionGroup} piloti liberi dello stesso grado, uno a caso riceve una missione premio al giorno. Assegna i piloti agli aerei per bonus negli scontri e in velocità (tasto <kbd>C</kbd>).</p>
   </section>`;
   const secFighters = `
   <section class="block">
@@ -297,15 +310,16 @@ function renderPanelBody() {
   const baseTitle = k => k === 'main' ? 'Base operativa' : CFG.bases.find(d => d.kind === k).label;
   const artCard = a => {
     const st = artifactState(a), at = S.artAt[a.id];
-    const activeLeft = { pilots: S.fx.pilotUntil, tech: S.fx.techUntil, recall: S.fx.recallUntil, monument: S.fx.monumentUntil, flight: S.fx.flight && S.fx.flight.until }[a.id] - S.t;
-    const act = activeLeft > 0 ? `<span class="note ok-text">Attivo, ancora ${fmtDur(activeLeft)}${a.id === 'pilots' ? `, ${S.fx.pilotLeft} bonus da assegnare ai caccia` : ''}</span>` : '';
+    const activeLeft = { pilots: S.fx.pilotUntil, tech: S.fx.techUntil, recall: S.fx.recallUntil, monument: S.fx.monumentUntil, flight: S.fx.flight && S.fx.flight.until,
+      tacCad: S.fx.cadetsUntil, sublunar: (S.fx.space.find(x => x.id === 'sublunar') || {}).at, mars: (S.fx.space.find(x => x.id === 'mars') || {}).at, venus: (S.fx.space.find(x => x.id === 'venus') || {}).at }[a.id] - S.t;
+    const act = activeLeft > 0 ? `<span class="note ok-text">${a.space !== undefined ? `Missione in corso, il pilota arriva tra ${fmtDur(activeLeft)}` : `Attivo, ancora ${fmtDur(activeLeft)}`}${a.id === 'pilots' ? `, ${S.fx.pilotLeft} bonus da assegnare ai caccia` : ''}</span>` : '';
     return `<div class="art${activeLeft > 0 ? ' on' : ''}">
       <div class="art-head"><b>${a.name}</b><button class="btn ${st.why ? 'ghost' : ''}" data-action="artifact" data-a="${a.id}" ${st.why || S.pending ? 'disabled' : ''}>Attiva (${CFG.artifactCost} cr, ${CFG.artifactResearch}%)</button></div>
       <span class="note">${a.desc}</span>${act}
       ${st.why ? `<span class="note warn-text">${st.why}</span>` : ''}
     </div>`;
   };
-  const nextDef = CFG.bases[S.extra.length];
+  const nextDef = nextBaseDef();
   const ownedBlocks = S.extra.map(b => {
     const def = CFG.bases.find(d => d.kind === b.kind);
     let info = '';
@@ -332,7 +346,7 @@ function renderPanelBody() {
       <p class="note"><b>Base operativa:</b> ${S.base.name}. Aerei e hangar restano qui; le basi secondarie danno ricerca, artefatti e bonus. Si acquistano in ordine e per ognuna scegli tra 10 località casuali.</p>
       ${S.extra.length ? `<div class="rankbox"><b>Ricerca: ${Math.round(S.research)}%</b> · attivazioni disponibili: ${researchCharges()}
         <div class="bar"><i style="width:${Math.min(100, (S.research % CFG.artifactResearch) / CFG.artifactResearch * 100)}%"></i></div></div>` : ''}
-      ${CFG.bases.map((d, i) => i < S.extra.length ? `<div class="baseline owned"><b>${d.label}</b> <span class="note">${d.short} · ${S.extra[i].site.name}</span></div>`
+      ${CFG.bases.map((d, i) => extraOf(d.kind) ? `<div class="baseline owned"><b>${d.label}</b> <span class="note">${d.short} · ${extraOf(d.kind).site.name}</span></div>`
         : d === nextDef ? `<div class="baseline"><b>${d.label}</b> <span class="note">${d.short}</span>
             <button class="btn" data-action="buyBase" data-a="${d.kind}" ${S.credits < d.cost ? 'disabled' : ''}>Acquista (${d.cost.toLocaleString('it-IT')} crediti)</button></div>`
         : `<div class="baseline locked"><b>${d.label}</b> <span class="note">${d.short} · ${d.cost.toLocaleString('it-IT')} crediti, dopo la ${CFG.bases[i - 1].label.toLowerCase()}</span></div>`).join('')}

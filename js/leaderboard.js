@@ -12,6 +12,7 @@ function cleanEntry(e) {
     id: clip(e.id, 40), nome: clip(e.nome, 24), cognome: clip(e.cognome, 24), stato: clip(e.stato, 40),
     medaglie: Math.round(n(e.medaglie, 0, MEDALS_GOAL)), giorni: Math.round(n(e.giorni, 0, 1e5) * 100) / 100,
     vittoria: e.vittoria === true, esito: clip(e.esito, 40), grado: clip(e.grado, 30),
+    ammiragli: Math.round(n(e.ammiragli, 0, 1e4)),
     minacce: Math.round(n(e.minacce, 0, 1e6)), crediti: Math.round(n(e.crediti, -1e9, 1e9)), data: clip(e.data, 40),
   };
 }
@@ -46,7 +47,7 @@ async function submitScore(entry) {
 function boardHtml(board, highlightId, saved) {
   const rows = board.map((e, i) => `<tr class="${e.id === highlightId ? 'me' : ''}">
       <td>${i + 1}</td>
-      <td>${esc(e.nome)} ${esc(e.cognome)}<br><span class="note">${esc(e.stato)} · ${esc(e.grado)}${e.vittoria ? ' · vittoria' : ''}</span></td>
+      <td>${esc(e.nome)} ${esc(e.cognome)}<br><span class="note">${esc(e.stato)} · ${esc(e.grado)}${e.vittoria ? ' · vittoria' : ''}${e.ammiragli ? ` · ${e.ammiragli} ${e.ammiragli === 1 ? 'ammiraglio' : 'ammiragli'}` : ''}</span></td>
       <td>${e.medaglie}</td><td>${e.giorni.toFixed(1)}</td></tr>`).join('');
   const mine = highlightId && !board.some(e => e.id === highlightId) ? '<p class="note">Il tuo risultato non è entrato nella top 10.</p>' : '';
   return `<h3>Classifica · migliori ${BOARD_SIZE}</h3>

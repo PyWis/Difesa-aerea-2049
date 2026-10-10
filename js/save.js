@@ -29,6 +29,9 @@ function loadSave(d) {
   // gli addestramenti puntano a oggetti di BASES: ricollega i riferimenti persi con il JSON
   for (const tr of S.trainings) tr.base = BASES.find(b => same(b, tr.base)) || tr.base;
   if (!S.threats.some(t => t.id === S.selectedThreat)) S.selectedThreat = null;
+  // salvataggi precedenti alle minacce speciali
+  S.fx = Object.assign(newFx(), S.fx);
+  S.launch = S.launch || []; S.pilotsSpace = S.pilotsSpace || 0; S.apocDone = S.apocDone || 0; S.ids.X = S.ids.X || 0;
   if (!S.pilots) { S.pilots = []; S.pilotsLost = 0; S.ids.PL = 0; initPilots(); A.autoCrew(); } // salvataggi precedenti alla caserma
   closeModal();
   addLog('Partita ripresa dall\'ultimo salvataggio (in pausa).', 'good');

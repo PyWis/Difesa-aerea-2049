@@ -60,6 +60,7 @@ Object.assign(A, {
 });
 
 function rankRoles(i) {
+  if (PR()[i].noFly) return 'non partecipa ai voli · punteggio extra';
   const lab = { fighter: 'caccia', bomber: 'bombardieri', tactical: 'tattici' }, m = CFG.pilots.slotMinRank;
   const f = slot => { const l = Object.keys(m).filter(t => i >= m[t][slot]).map(t => lab[t]); return l.length === 3 ? 'tutti i mezzi' : l.join(', '); };
   const sec = f('second'), fst = f('first');
@@ -74,6 +75,7 @@ function promoText(r) {
 }
 function pilotProgress(pl) {
   if (inAcademy(pl)) return `Accademia: ancora ${fmtDur(pl.academyUntil - S.t)}`;
+  if (isAdmiral(pl)) return 'Punteggio extra · non partecipa ai voli';
   if (isLastRank(pl)) return `Grado massimo · ${pl.total} missioni`;
   const r = pilotRank(pl), next = PR()[pl.rank + 1];
   const parts = [r.missions && `missioni ${Math.min(pl.missions, r.missions)}/${r.missions}`, r.days && `giorni ${Math.min((S.t - pl.since) / DAY, r.days).toFixed(1)}/${r.days}`].filter(Boolean);
@@ -90,7 +92,7 @@ function crewOptions(p, slot) {
 }
 function barracksHtml() {
   const ready = S.pilots.filter(pl => !inAcademy(pl)), cadets = S.pilots.filter(inAcademy);
-  const free = ready.filter(pl => !planeOfPilot(pl.id)).length;
+  const free = freePilotsOf(() => true).length, admirals = ready.filter(isAdmiral).length;
   const crewRows = planesByType().map(p => {
     const air = isAir(p), bonus = [crewWin(p) && `+${Math.round(crewWin(p) * 100)}% scontri`, crewStrikeSpeed(p) && `+${crewStrikeSpeed(p)} km/h`].filter(Boolean).join(' · ');
     const sel = slot => `<label>${SLOT_NAME[slot]} <span class="note">(da ${PR()[slotMin(p, slot)].name})</span>
@@ -101,11 +103,11 @@ function barracksHtml() {
   const rows = [...ready.sort((a, b) => b.rank - a.rank || b.missions - a.missions || a.cognome.localeCompare(b.cognome)), ...cadets.sort((a, b) => a.academyUntil - b.academyUntil)].map(pl => {
     const p = planeOfPilot(pl.id), slot = p && (p.crew.first === pl.id ? 'first' : 'second');
     return `<tr class="${inAcademy(pl) ? 'cadet' : ''}"><td><b>${esc(pilotTitle(pl))}</b><br><span class="note">${esc(pl.naz)} · ${pilotRank(pl).name}</span></td>
-      <td>${esc(pilotProgress(pl))}</td><td>${inAcademy(pl) ? '—' : p ? `${p.id} (${SLOT_NAME[slot]})` : 'libero'}</td></tr>`;
+      <td>${esc(pilotProgress(pl))}</td><td>${inAcademy(pl) ? '—' : p ? `${p.id} (${SLOT_NAME[slot]})` : isAdmiral(pl) ? 'non vola' : 'libero'}</td></tr>`;
   }).join('');
-  const ranksHelp = PR().map((r, i) => `<tr><td><b>${r.name}</b></td><td>${rankRoles(i)}${rankBonus(r) ? `<br>${rankBonus(r)}` : ''}</td><td>${i < PR().length - 1 ? promoText(r) : 'grado massimo'}</td></tr>`).join('');
+  const ranksHelp = PR().map((r, i) => `<tr><td><b>${r.name}</b></td><td>${rankRoles(i)}${rankBonus(r) ? `<br>${rankBonus(r)}` : ''}</td><td>${r.final ? (r.noFly ? 'si ottiene con la Missione venusiana ONU' : 'grado massimo in volo') : promoText(r)}</td></tr>`).join('');
   return `<h2>Caserma</h2>
-    <p class="note">${ready.length} piloti in servizio (${free} liberi), ${cadets.length} in accademia, ${S.pilotsLost || 0} caduti. Un nuovo cadetto arriva a mezzanotte (tra ${fmtDur(minutesToMidnight(S.t))}). Il tempo è fermo finché la finestra è aperta.</p>
+    <p class="note">${ready.length} piloti in servizio (${free} liberi), ${cadets.length} in accademia, ${S.pilotsLost || 0} caduti${S.pilotsSpace ? `, ${S.pilotsSpace} in missione spaziale` : ''}${admirals ? `. Ammiragli di Volo (punteggio extra): ${admirals}` : ''}. Un nuovo cadetto arriva a mezzanotte (tra ${fmtDur(minutesToMidnight(S.t))}). Il tempo è fermo finché la finestra è aperta.</p>
     <h3>Equipaggi</h3>
     <p class="note">Un aereo decolla solo con 1° e 2° pilota assegnati. I bonus dei piloti a bordo si sommano${CFG.pilots.deathOnLoss ? '. Se l\'aereo va perso, l\'equipaggio cade con lui' : ''}. L'equipaggio si cambia solo a terra.</p>
     <div class="crew">${crewRows}</div>

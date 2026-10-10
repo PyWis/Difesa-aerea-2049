@@ -8,6 +8,7 @@ const A = {
     S.speed = 60;
     addLog(`Base operativa stabilita a ${s.name} (${s.state}, ${s.cont}).`, 'good');
     for (let i = 0; i < CFG.startFighters; i++) A.buy('fighter');
+    initPilots();
     renderPanel(true);
   },
   speed(v) {
@@ -28,7 +29,7 @@ const A = {
     if (!T || planesOf(type).length >= maxOf(type)) return;
     const id = T.prefix + (++S.ids[T.prefix]);
     S.planes.push({ id, type, state: 'base', mode: 'lead', aim: null, speed: T.base, lat: S.base.lat, lon: S.base.lon,
-      target: null, escort: null, engaged: null, flightMin: 0, upgradeMin: 0, heading: 0, wins: 0, bonus: 0 });
+      target: null, escort: null, engaged: null, flightMin: 0, upgradeMin: 0, heading: 0, wins: 0, bonus: 0, crew: { first: null, second: null } });
     addLog(`${T.label} ${id} in hangar (${T.base} km/h).`);
   },
   // imposta quanti aerei di supporto sono attivi; i conti si fanno qui

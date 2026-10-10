@@ -31,6 +31,7 @@ function goHome(p) { p.state = 'rtb'; p.mission = null; p.target = null; p.escor
 function removePlane(p, msg) {
   S.planes = S.planes.filter(x => x !== p);
   if (msg) addLog(msg, 'bad');
+  loseCrew(p);
   detach(p);
 }
 // abbattimento in combattimento: penale; il caccia è perso, bombardiere e tattico tornano dopo 1 giorno
@@ -47,6 +48,7 @@ function shotDown(p, msg) {
     p.mission = null; p.state = 'repair'; p.repairUntil = S.t + CFG.repairMin;
     p.lat = S.base.lat; p.lon = S.base.lon; p.target = null; p.escort = null; p.engaged = null; p.aim = null; p.flightMin = 0;
     addLog(`${msg} Penale ${pen} crediti, tornerà disponibile tra ${fmtDur(CFG.repairMin)}.`, 'bad');
+    loseCrew(p);
     detach(p);
   }
   spend(pen, 'Penale per aereo abbattuto');

@@ -18,6 +18,29 @@ Anche `python3 -m http.server 8000` funziona, ma la classifica resta solo nel br
 - **Salvataggio automatico:** a ogni mezzanotte di gioco (le 24) la partita viene salvata nel browser (`localStorage`). All'avvio, se c'è un salvataggio, scegli tra **Continua l'ultima partita** e **Nuova partita**. Il salvataggio viene **cancellato automaticamente quando la partita finisce** (bancarotta, reputazione a zero, vittoria). La partita ripresa parte in pausa.
 - **Classifica (top 10, `classifica.json`):** a fine partita il risultato viene registrato. Ordine: più **medaglie**; a parità, vince chi è **durato più a lungo**; tra le partite **vinte**, vince chi ha vinto in **meno giorni**. Il pulsante ★ in alto la mostra in qualsiasi momento. `server.py` aggiorna il file; senza server il risultato resta nel browser e puoi scaricare il file dalla finestra della classifica.
 
+## Caserma e piloti (tasto `C`)
+
+Ogni mezzanotte arriva **1 cadetto** con nome, cognome, nazionalità e livello. La nazionalità è casuale in proporzione al peso dello stato in `mondo.csv` (numero di righe: Cina e India pesano molto più dell'Italia); nome e cognome sono estratti dalla tabella della nazionalità in `nomi.json` (86 tabelle, una per stato). Si parte con **10 Sergenti e 10 Marescialli di Volo** da assegnare. La finestra Caserma mette il gioco in pausa finché è aperta.
+
+| Livello | Promozione | Ruolo | Bonus |
+|---------|-----------|-------|-------|
+| Cadetto | 3 giorni in accademia | - | - |
+| Cadetto scelto | 2 giorni in accademia | - | - |
+| Sergente | 2 giorni e 3 missioni | 2° pilota su caccia | - |
+| Sergente Scelto | 4 giorni e 7 missioni | 2° pilota su caccia | +3% negli scontri |
+| Sergente Capo | 7 giorni e 10 missioni | 2° pilota su tutti i mezzi | +5% negli scontri |
+| Maresciallo di Volo | 20 missioni | 2° pilota su tutti; 1° pilota di un caccia | +10% negli scontri; +200 km/h su bombardieri e tattici |
+| Luogotenente di Volo | 50 missioni | 2° pilota su tutti; 1° pilota di caccia, bombardieri e tattici | come sopra |
+| Capitano di Volo | - | come sopra | se comanda una pattuglia, +25% di velocità a tutti i suoi mezzi |
+
+Regole (valori in `CFG.pilots`):
+
+- Giorni e missioni si contano **nel grado** e devono valere entrambi. Una **missione** è un'uscita conclusa con l'atterraggio alla base con il pilota a bordo.
+- Ogni aereo ha un **1° pilota** (comandante) e un **2° pilota**; i piloti si assegnano a terra, dalla finestra Caserma, che offre anche l'assegnazione automatica dei posti vuoti. Un aereo senza piloti vola con il pilota di base, come prima.
+- I bonus dei piloti a bordo **si sommano** (tetto del 95% di vittoria) e valgono anche per la difesa dei bombardieri contro le imboscate. La pattuglia certa resta al 100%.
+- Un aereo **perso** (abbattuto o senza carburante) porta con sé l'equipaggio, che cade (`CFG.pilots.deathOnLoss`). La difesa jet salva anche i piloti.
+- I gradi dopo il Sergente Scelto non hanno bonus propri oltre a quelli elencati: Luogotenente e Capitano hanno gli stessi bonus del Maresciallo (+10%, +200 km/h).
+
 ## Obiettivo
 
 Raggiungi **100 medaglie**. Le medaglie sono il tuo grado:
@@ -108,6 +131,7 @@ Sotto i 900 px di larghezza tutto passa in un'unica colonna.
 | `Spazio` | pausa / riprendi |
 | `1`-`7` | velocità: pausa, tempo reale, 1, 2, 5, 15 min/s, 1 ora/s |
 | `L` | apre/chiude il registro |
+| `C` | apre la caserma |
 | `T` | seleziona la minaccia successiva |
 | `Esc` | deseleziona |
 | `I` | intercetta la minaccia selezionata con il caccia pronto più veloce |
@@ -120,9 +144,9 @@ Sotto i 900 px di larghezza tutto passa in un'unica colonna.
 - `js/`: il gioco, diviso in moduli (script classici caricati in ordine da `index.html`, con scope condiviso)
   - `config.js` parametri (`CFG`), gradi e tipi di aereo · `util.js` geografia, tempo, formattazione · `world.js` lettura di `mondo.csv`
   - `state.js` stato, economia, prestiti e debito · `actions.js` azioni del giocatore · `fleet.js` decollo, pattuglie, abbattimenti
-  - `ops.js` operazioni speciali, artefatti, addestramenti · `sim.js` passo di simulazione, minacce e combattimento
+  - `ops.js` operazioni speciali, artefatti, addestramenti · `pilots.js` piloti, gradi e bonus · `barracks.js` finestra Caserma · `sim.js` passo di simulazione, minacce e combattimento
   - `endgame.js` vittoria/sconfitta · `save.js` salvataggio locale · `leaderboard.js` classifica
   - `map.js` mappa su canvas · `panel.js` pannello e HUD · `ui.js` tastiera, modali, profilo e menu iniziale · `main.js` ciclo principale e avvio
 - `land.js`: contorni dei continenti
-- `mondo.csv`: città/basi del mondo
+- `mondo.csv`: città/basi del mondo · `nomi.json`: nomi e cognomi dei piloti per nazionalità
 - `server.py`: server locale che aggiorna `classifica.json` · `classifica.json`: i migliori 10

@@ -69,6 +69,13 @@ function gearRow(p) {
   }
   return tags.length ? `<div class="gearrow">${tags.join('')}</div>` : '';
 }
+function crewLine(p) {
+  const pl = crewPilots(p), c = crewOf(p);
+  if (!pl.length) return '<span class="note">Nessun pilota assegnato (pilota di base): vedi Caserma.</span>';
+  const who = slot => { const x = pilotById(c[slot]); return x ? `${SLOT_NAME[slot]} ${esc(pilotTitle(x))}` : ''; };
+  const bonus = [crewWin(p) && `+${Math.round(crewWin(p) * 100)}% scontri`, crewStrikeSpeed(p) && `+${crewStrikeSpeed(p)} km/h`, patrolSpeedMult(p) > 1 && `pattuglia +${Math.round(CFG.pilots.patrolCaptainSpeed * 100)}% velocità`].filter(Boolean).join(', ');
+  return `<span class="note">Equipaggio: ${[who('first'), who('second')].filter(Boolean).join(' · ')}${bonus ? ` (${bonus})` : ''}</span>`;
+}
 function planeCard(p, aut) {
   const T = TYPES[p.type];
   let extra = '', actions = '';
@@ -129,8 +136,9 @@ function planeCard(p, aut) {
     </div>`;
   return `<div class="plane ${p.state} t-${p.type}${p.patrolId && p.state === 'flight' ? ' patrol' : ''}${p.damaged && p.state === 'rtb' ? ' damaged' : ''}">
     <div class="plane-head"><span class="tag">${p.id}</span>
-      <span class="state">${planeStateText(p)}</span><span class="speed">${spd(p) !== p.speed && (isAir(p) || techOn()) ? `${Math.round(spd(p))} km/h${p.damaged ? '' : p.fast ? ' (rientro rapido)' : p.joining ? ' (in raggiungimento)' : S.t < (p.sonicUntil || 0) ? ' (sonico)' : ' (addestramento tecnico)'}` : `${p.speed} km/h`}</span></div>
+      <span class="state">${planeStateText(p)}</span><span class="speed">${spd(p) !== p.speed && (isAir(p) || techOn() || crewStrikeSpeed(p)) ? `${Math.round(spd(p))} km/h${p.damaged ? '' : p.fast ? ' (rientro rapido)' : p.joining ? ' (in raggiungimento)' : S.t < (p.sonicUntil || 0) ? ' (sonico)' : techOn() ? ' (addestramento tecnico)' : ' (equipaggio)'}` : `${p.speed} km/h`}</span></div>
     ${gearRow(p)}
+    ${crewLine(p)}
     <span class="note">${winsText(p)}</span>
     ${extra}
     <div class="plane-foot">${mode}<div class="actions">${actions}</div></div>
@@ -249,6 +257,13 @@ function renderPanelBody() {
     ${threatRows}
     ${S.threats.length ? helpBox('threats', 'Regole di ingaggio', `<p class="note">In volo si colpiscono con i caccia (${Math.round(winCh() * 100)}% al contatto, +${CFG.killReward}). Mentre attaccano una base solo bombardiere (+${CFG.killReward}, −${CFG.rebuildCost} di ricostruzione) e aereo tattico (+${CFG.tacticalReward}) possono eliminarle.</p>`) : ''}
   </section>`;
+  const readyPilots = S.pilots.filter(pl => !inAcademy(pl)), freePilots = readyPilots.filter(pl => !planeOfPilot(pl.id)).length;
+  const secBarracks = `
+  <section class="block">
+    <h2>Caserma <span class="count">${readyPilots.length} piloti</span>
+      <button class="btn ghost" data-action="barracks">Apri la caserma</button></h2>
+    <p class="note">${freePilots} piloti liberi, ${S.pilots.length - readyPilots.length} in accademia, ${S.pilotsLost || 0} caduti. Ogni giorno arriva un cadetto. Assegna i piloti agli aerei per bonus negli scontri e in velocità (tasto <kbd>C</kbd>).</p>
+  </section>`;
   const secFighters = `
   <section class="block">
     <h2>Caccia <span class="count">${fighters.length}/${maxOf('fighter')}</span>
@@ -330,7 +345,7 @@ function renderPanelBody() {
     ['missione', 'Missione', 0, false],
   ];
   if (S.pending) panelTab = 'basi';
-  const body = { minacce: secThreats, flotta: secFighters + secStrike, logistica: loanBlock() + secSupport, basi: secBases, missione: secBase }[panelTab] || secThreats;
+  const body = { minacce: secThreats, flotta: secBarracks + secFighters + secStrike, logistica: loanBlock() + secSupport, basi: secBases, missione: secBase }[panelTab] || secThreats;
   panel.innerHTML = `<nav class="tabs" role="tablist" aria-label="Sezioni">${tabs.map(([k, label, n, hot]) =>
     `<button role="tab" data-action="tab" data-a="${k}" aria-selected="${k === panelTab}">${label}${n ? `<span class="badge ${hot ? 'hot' : ''}">${n}</span>` : ''}</button>`).join('')}</nav>${body}`;
   renderLog();

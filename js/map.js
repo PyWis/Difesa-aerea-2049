@@ -134,6 +134,16 @@ function draw(now) {
 
   const line = (a, b, color, dash, alpha = 0.6, w = 1) => geoLine(a, b, color, dash, alpha, w);
 
+  // basi di lancio delle minacce: triangolo rosso (X = extra)
+  for (const lb of S.launch) {
+    const [x, y] = px(lb.site);
+    ctx.save(); ctx.translate(x, y); ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(7, 6); ctx.lineTo(-7, 6); ctx.closePath();
+    ctx.fillStyle = colors.threat; ctx.globalAlpha = 0.85; ctx.fill(); ctx.restore(); ctx.globalAlpha = 1;
+    ctx.fillStyle = colors.threat; ctx.font = '600 11px "Chakra Petch", system-ui, sans-serif';
+    txt(`Base di lancio${lb.kind === 'extra' ? ' extra' : ''} ${lb.site.name}`, x + 11, y - 4);
+    ctx.fillStyle = colors['ink-soft']; txt(`lancio tra ${fmtDur(lb.next - S.t)}`, x + 11, y + 9);
+  }
+
   // altre basi del mondo (bersagli possibili), discrete
   ctx.fillStyle = colors['ink-soft']; ctx.globalAlpha = 0.4;
   for (const b of BASES) { const [x, y] = px(b); ctx.beginPath(); ctx.arc(x, y, 1.8, 0, Math.PI * 2); ctx.fill(); }
@@ -208,12 +218,15 @@ function draw(now) {
       continue;
     }
     if (th.state === 'hunting') { const prey = findPlane(th.prey); if (prey) line(th, prey, colors.threat, [2, 3], 0.9, 1.5); }
-    ctx.beginPath(); ctx.arc(x, y, 10 + pulse * 8, 0, Math.PI * 2);
+    if (th.goal) line(th, th.goal, colors.threat, [6, 4], th.apoc ? 0.7 : 0.45, th.apoc ? 1.8 : 1.2); // rotta diretta sul bersaglio
+    ctx.beginPath(); ctx.arc(x, y, (th.apoc ? 16 : 10) + pulse * (th.apoc ? 12 : 8), 0, Math.PI * 2);
     ctx.strokeStyle = colors.threat; ctx.globalAlpha = 0.45 * (1 - pulse); ctx.lineWidth = 2; ctx.stroke(); ctx.globalAlpha = 1;
     if (th.training) { ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.strokeStyle = colors.threat; ctx.lineWidth = 1.5; ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]); }
+    else if (th.apoc) drawArrow(x, y, th.bearing, colors.threat, 13);
+    else if (th.state === 'raid') drawBomber(x, y, th.bearing, colors.threat, false);
     else drawArrow(x, y, th.bearing, colors.threat, sel ? 9 : 7);
     if (sel) { ctx.beginPath(); ctx.arc(x, y, 14, 0, Math.PI * 2); ctx.strokeStyle = colors.threat; ctx.lineWidth = 1.5; ctx.stroke(); }
-    ctx.fillStyle = colors.threat; txt(th.training ? `${th.id} addestramento` : th.id, x + 10, y - 8);
+    ctx.fillStyle = colors.threat; txt(th.training ? `${th.id} addestramento` : th.apoc ? `APOCALISSE ${th.id}` : th.state === 'raid' ? `${th.id} bombardiera` : th.id, x + 10, y - 8);
   }
 
   // missili ad antimateria
@@ -263,6 +276,7 @@ function hit(e) {
 }
 const BASE_TAG = { research: 'R', missile: 'M', training: 'A', major: '★' };
 const THREAT_STATE = th => th.training ? 'Bersaglio d\'addestramento (fermo)' : ({
+  apoc: `MINACCIA DELL'APOCALISSE verso ${th.goal && th.goal.name}`, raid: `Minaccia bombardiera verso ${th.goal && th.goal.name}`,
   flight: 'In volo', inbound: 'In volo', hunting: `Va incontro a ${th.prey}`,
   cooldown: `Attacca ${th.attack && th.attack.name}`,
 }[th.state]);
@@ -280,6 +294,7 @@ canvas.addEventListener('mousemove', e => {
     if (th) html = `<b>${th.id}</b> ${THREAT_STATE(th)}<br>${fmtCoord(th)}, ${Math.round(dist(th, S.base))} km dalla base<br>Clic per selezionare`;
     else if (p) html = `<b>${p.id}</b> ${TYPES[p.type].label}, ${p.speed} km/h<br>${planeStateText(p)}`;
     else if (S.trainings.find(tr => near(tr.base))) { const tr = S.trainings.find(x => near(x.base)); html = `<b>Addestramento: ${tr.base.name}</b><br>Invia un aereo tattico, premio ${CFG.trainingMedals} medaglia<br>Scade tra ${fmtDur(tr.until - S.t)}`; }
+    else if (S.launch.find(lb => near(lb.site))) { const lb = S.launch.find(x => near(x.site)); html = `<b>Base di lancio delle minacce${lb.kind === 'extra' ? ' extra' : ''}: ${lb.site.name}</b><br>${lb.site.state}<br>Prossimo lancio tra ${fmtDur(lb.next - S.t)}<br>Va distrutta con un bombardiere`; }
     else if (near(S.base)) html = `<b>Base: ${S.base.name}</b><br>${S.base.state}, ${S.base.cont}`;
     else if (S.extra.find(b => near(b.site))) { const b = S.extra.find(x => near(x.site)); html = `<b>${CFG.bases.find(d => d.kind === b.kind).label}: ${b.site.name}</b><br>${b.site.state}, ${b.site.cont}`; }
   }

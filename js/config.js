@@ -27,7 +27,8 @@ const CFG = {
   threatTurnChance: 0.03,   // probabilità di cambio direzione ogni ora
   upgradeStep: 100,         // km/h guadagnati per ogni giorno di potenziamento
   baseAutonomyH: 8, tankerBonusH: 4, // ore di autonomia in più per ogni rifornitore attivo
-  winChance: 0.8,
+  winChance: 0.55,          // probabilità standard di vittoria dei caccia contro una minaccia
+  winMin: 0.25,             // minimo raggiungibile salendo di grado (−2% a grado)
   interceptRadiusKm: 15,
   killReward: 1000,         // ricompensa per minaccia eliminata
   rebuildCost: 500,         // ricostruzione dopo un bombardamento
@@ -85,12 +86,43 @@ const CFG = {
     quantumKills: 2,
     recallHours: 8,
     quakeMinDays: 2, quakeMaxDays: 5,
-    pilotDays: 3, pilotBonuses: 2,
+    pilotDays: 3, pilotBonuses: 5,
     techDays: 3, techBonus: 300,
     flightDays: 3, flightEveryH: 3, flightRadiusKm: 600, flightLifeH: 24,
     trainDays: 15,
     monumentDays: 3, monumentUp: 50, monumentDown: 20,
+    // Accademia: missioni tattiche per i piloti
+    tacSergeants: 3,        // missioni a ogni sergente, sergente scelto e sergente capo
+    tacOfficers: 1,         // missioni a tutti i piloti in servizio
+    cadetDays: 30, cadetMissionDays: 3, cadetMissions: 3, // cadetti scelti per 30 giorni; sergenti con 3 missioni per 3 giorni
+    // Ricerca: missioni spaziali ONU. send piloti liberi dei gradi `ranks` partono; dopo `days` giorni arriva un pilota di grado `arrive`
+    space: [
+      { id: 'sublunar', name: 'Missione sublunare ONU', send: 10, ranks: [2, 3, 4], arrive: 5, days: 3, repLoss: 60, sergeantMissions: 1 },
+      { id: 'mars',     name: 'Missione marziana ONU',  send: 10, ranks: [5],       arrive: 7, days: 3, repLoss: 80 },
+      { id: 'venus',    name: 'Missione venusiana ONU', send: 10, ranks: [7],       arrive: 8, days: 3, repLoss: 0 },
+    ],
   },
+  // Minaccia dell'apocalisse: una volta al mese, direttamente su una base attiva
+  apoc: {
+    day: 15,                // giorno del mese (a mezzanotte)
+    speed: 500,             // km/h
+    speedAfter: 1500,       // km/h dopo aver distrutto le basi secondarie, verso la base principale
+    minKm: 5000,            // distanza minima dal bersaglio alla comparsa
+    fixedLoss: 0.9,         // probabilità fissa di sconfitta dei caccia nei primi scontri persi
+    fixedOffset: 3,         // caccia a probabilità fissa = mese di gioco N (aprile 1, maggio 2…) − fixedOffset
+    split: 3,               // minacce in cui si trasforma ogni caccia ucciso
+    medals: 5, calmDays: 1, // premio per la sconfitta e giorni senza nuove minacce
+    firstMonthIdx: 2,       // marzo (mese 0-based in cui parte il gioco): aprile = mese 1
+  },
+  // Basi di lancio delle minacce
+  launch: {
+    day: 1,                 // il primo del mese una base del mondo diventa base di lancio
+    everyH: 5,              // ore tra un lancio e il successivo
+    minKm: 2000, maxKm: 6000, // distanza dalla base operativa (raggiungibile da un bombardiere)
+    rep: 5,                 // reputazione guadagnata distruggendo la base di lancio mensile
+    extraMinRank: 2,        // grado minimo (Tenente) per la base di lancio extra, creata se il cielo è vuoto
+  },
+  freeMissionGroup: 5,      // ogni 5 piloti liberi dello stesso grado, uno a caso riceve una missione premio al giorno
   // dichiarazione di emergenza: solo su richiesta, mai automatica
   declaration: { days: 5, perDay: 2000, repPerDay: 10, maxCredits: 1000 },
   // caserma: piloti, accademia, gradi ed equipaggi
@@ -113,7 +145,8 @@ const CFG = {
       { name: 'Sergente Capo',        short: 'Sgt. C.',  days: 7, missions: 10, win: 0.05 },
       { name: 'Maresciallo di Volo',  short: 'Mar.',     missions: 20, win: 0.10, strikeSpeed: 200 },
       { name: 'Luogotenente di Volo', short: 'Ltn.',     missions: 50, win: 0.10, strikeSpeed: 200 },
-      { name: 'Capitano di Volo',     short: 'Cap.',     win: 0.10, strikeSpeed: 200, captain: true },
+      { name: 'Capitano di Volo',     short: 'Cap.',     win: 0.10, strikeSpeed: 200, captain: true, final: true },
+      { name: 'Ammiraglio di Volo',   short: 'Amm.',     noFly: true, final: true },  // non partecipa ai voli: punteggio extra
     ],
   },
   // debito: la bancarotta scatta oltre -limit crediti oppure dopo `hours` ore di gioco consecutive in negativo

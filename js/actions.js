@@ -112,8 +112,7 @@ const A = {
   // acquisto di una base secondaria: nuova scelta tra 10 località casuali (il tempo si ferma)
   buyBase(kind) {
     const def = CFG.bases.find(b => b.kind === kind);
-    const nextDef = CFG.bases[S.extra.length];
-    if (!def || def !== nextDef || S.pending) return;
+    if (!def || def !== nextBaseDef() || S.pending) return;
     if (S.credits < def.cost) { addLog(`Servono ${def.cost} crediti per la ${def.label.toLowerCase()}.`, 'bad'); return; }
     const rows = worldRows.filter(r => !isOwnBase({ lat: parseFloat(r.Lat_citta), lon: parseFloat(r.Lon_citta) }));
     S.pending = { kind, sites: pickSites(rows) };
@@ -160,7 +159,7 @@ const A = {
     if (!p || p.type !== 'fighter' || S.t >= S.fx.pilotUntil || S.fx.pilotLeft <= 0 || p.state === 'upgrading' || p.state === 'repair' || p.speed >= TYPES.fighter.top) return;
     S.fx.pilotLeft--;
     p.bonus = (p.bonus || 0) + 1;
-    addLog(`Addestramento piloti: bonus su ${p.id}${p.state === 'base' ? '' : ' (si applica all\'atterraggio)'}. Ne restano ${S.fx.pilotLeft}.`, 'good');
+    addLog(`Aggiornamento piloti: bonus su ${p.id}${p.state === 'base' ? '' : ' (si applica all\'atterraggio)'}. Ne restano ${S.fx.pilotLeft}.`, 'good');
     if (p.state === 'base') applyBonus(p);
   },
   retarget(planeId, threatId) {

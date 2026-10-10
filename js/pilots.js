@@ -20,7 +20,11 @@ const crewOf = p => p.crew || (p.crew = { first: null, second: null });
 const crewPilots = p => (p.crew ? [p.crew.first, p.crew.second].map(pilotById).filter(Boolean) : []);
 const planeOfPilot = id => S.planes.find(p => p.crew && (p.crew.first === id || p.crew.second === id));
 const slotMin = (p, slot) => CFG.pilots.slotMinRank[p.type][slot];
-const canSlot = (pl, p, slot) => !inAcademy(pl) && pl.rank >= slotMin(p, slot);
+const isAdmiral = pl => !!pilotRank(pl).noFly;   // l'Ammiraglio di Volo non partecipa ai voli
+const canSlot = (pl, p, slot) => !inAcademy(pl) && !isAdmiral(pl) && pl.rank >= slotMin(p, slot);
+const pilotsWhere = pred => S.pilots.filter(pl => !inAcademy(pl) && pred(pl));
+// piloti in servizio senza assegnazione a un aereo (gli ammiragli non volano mai)
+const freePilotsOf = pred => pilotsWhere(pl => !isAdmiral(pl) && !planeOfPilot(pl.id) && pred(pl));
 // un aereo può decollare solo con entrambi i piloti (se crewRequired)
 const crewReady = p => !CFG.pilots.crewRequired || !!(p.crew && pilotById(p.crew.first) && pilotById(p.crew.second));
 const SLOT_NAME = { first: '1° pilota', second: '2° pilota' };
@@ -66,20 +70,41 @@ function initPilots() {
 }
 function arriveCadets() {
   for (let i = 0; i < CFG.pilots.cadetsPerDay; i++) {
-    const pl = newPilot(0);
-    addLog(`Caserma: arriva il cadetto ${pl.nome} ${pl.cognome} (${pl.naz}), ${PR()[0].academyDays} giorni di accademia.`);
+    const rank = S.t < S.fx.cadetsUntil ? 1 : 0; // Missione tattica Cadetti: arrivano già cadetti scelti
+    const pl = newPilot(rank);
+    addLog(`Caserma: arriva il ${rank ? 'cadetto scelto' : 'cadetto'} ${pl.nome} ${pl.cognome} (${pl.naz}), ${PR()[rank].academyDays} giorni di accademia.`);
   }
   if (typeof refreshBarracks === 'function') refreshBarracks();
 }
 
 // ---------- Promozioni ----------
-const isLastRank = pl => pl.rank >= PR().length - 1;
+const isLastRank = pl => !!pilotRank(pl).final;
 const promoReady = pl => { const r = pilotRank(pl); return !isLastRank(pl) && pl.missions >= (r.missions || 0) && S.t - pl.since >= (r.days || 0) * DAY; };
 function promote(pl) {
   pl.rank++; pl.since = S.t; pl.missions = 0;
   const r = pilotRank(pl);
   pl.academyUntil = r.academyDays ? S.t + r.academyDays * DAY : null;
-  addLog(`Caserma: ${pl.nome} ${pl.cognome} (${pl.naz}) ${r.academyDays ? `è ora ${r.name}` : `è promosso a ${r.name}`}.`, pl.rank >= 2 ? 'good' : '');
+  if (pl.rank === 2 && S.t < S.fx.cadetMissionsUntil) pl.missions = CFG.art.cadetMissions; // Missione tattica Cadetti
+  addLog(`Caserma: ${pl.nome} ${pl.cognome} (${pl.naz}) ${r.academyDays ? `è ora ${r.name}` : `è promosso a ${r.name}`}${pl.missions ? ` con ${pl.missions} missioni già effettuate` : ''}.`, pl.rank >= 2 ? 'good' : '');
+}
+// missioni extra (artefatti, premi): contano come quelle di volo
+function giveMission(pl, n) {
+  pl.missions += n; pl.total += n;
+  if (promoReady(pl)) promote(pl);
+}
+// ogni giorno, per ogni 5 piloti liberi dello stesso grado, uno a caso riceve una missione premio (fino alla promozione)
+function awardFreeMissions() {
+  const g = CFG.freeMissionGroup, byRank = {};
+  for (const pl of freePilotsOf(pl => !isLastRank(pl))) (byRank[pl.rank] ||= []).push(pl);
+  for (const list of Object.values(byRank)) {
+    const n = Math.floor(list.length / g);
+    if (!n) continue;
+    const lucky = shuffle(list).slice(0, n);
+    for (const pl of lucky) {
+      addLog(`Caserma: missione premio a ${pilotTitle(pl)} (${list.length} ${pilotRank(pl).name} senza assegnazione).`, 'good');
+      giveMission(pl, 1);
+    }
+  }
 }
 // a ogni passo: fine dell'accademia e promozioni per giorni di servizio
 function tickPilots() {

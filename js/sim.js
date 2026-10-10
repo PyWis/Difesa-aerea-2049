@@ -55,6 +55,9 @@ function step(dt) {
       addMedal(1);
       if (S.over) return;
     }
+    awardFreeMissions();
+    monthlyEvents(gameDate(t1));
+    if (S.over) return;
     arriveCadets();
     S.autosave = true; // il ciclo principale salva la partita a fine passo
   }
@@ -68,7 +71,7 @@ function step(dt) {
     for (const th of S.threats) if (th.recalled) { th.recalled = false; th.course = (th.course || 0) + 1; }
     addLog('Richiamo terminato: le minacce riprendono a muoversi liberamente.');
   }
-  if (fx.pilotUntil && t1 >= fx.pilotUntil) { addLog(`Addestramento piloti terminato${fx.pilotLeft ? ` (${fx.pilotLeft} bonus non usati persi)` : ''}.`); fx.pilotUntil = 0; fx.pilotLeft = 0; }
+  if (fx.pilotUntil && t1 >= fx.pilotUntil) { addLog(`Aggiornamento piloti terminato${fx.pilotLeft ? ` (${fx.pilotLeft} bonus non usati persi)` : ''}.`); fx.pilotUntil = 0; fx.pilotLeft = 0; }
   if (fx.techUntil && t1 >= fx.techUntil) { fx.techUntil = 0; addLog('Addestramento tecnico terminato: velocità normale.'); }
   if (fx.flight) {
     if (t1 >= fx.flight.until) { fx.flight = null; addLog('Addestramento volo terminato.'); }
@@ -88,10 +91,13 @@ function step(dt) {
     addLog(`${r.why}: reputazione +${r.rep}%.`, 'good');
   }
 
+  spaceArrivals();
+  if (S.over) return;
+
   // ricognitori: segnalazione casuale, in media una ogni N giorni di volo
   const pSignal = 1 - Math.exp(-dt / (CFG.reconSignalDays * DAY));
   const nRecon = S.support.recon + S.ops.boosts.reduce((a, b) => a + b.n, 0);
-  for (let i = 0; i < nRecon; i++) {
+  for (let i = 0; i < (calm() ? 0 : nRecon); i++) {
     if (Math.random() < pSignal) { S.support.signals++; spawnThreat('La ricognizione'); }
   }
 
@@ -107,6 +113,8 @@ function step(dt) {
 
   // minacce
   const hourCrossed = Math.floor(t1 / 60) > Math.floor(t0 / 60);
+  launchTick();
+  if (hourCrossed) checkExtraLaunch();
   const kmBase = thSpeed() * dt / 60;
   const recall = S.t < S.fx.recallUntil;
   for (const th of [...S.threats]) {
@@ -115,6 +123,7 @@ function step(dt) {
       if (S.t >= th.expires) { removeThreat(th.id); addLog(`Il bersaglio d'addestramento ${th.id} si è dissolto.`); }
       continue;
     }
+    if (th.apoc || th.state === 'raid') { raiderStep(th, dt); if (S.over) return; continue; }
     if (recall && th.state === 'inbound') { th.state = 'flight'; th.attack = null; th.course = (th.course || 0) + 1; }
     if (th.rush && th.state !== 'inbound') th.rush = false;
     const km = kmBase * (th.rush ? CFG.ops.tactical.speedMult : 1);
@@ -243,6 +252,16 @@ function step(dt) {
         continue;
       } else { moveTo(p, tr.base, pkm); continue; }
     }
+    if (p.state === 'flight' && p.mission === 'raid') {
+      const lb = S.launch.find(x => x.id === p.raidId);
+      if (!lb) { goHome(p); addLog(`${p.id}: la base di lancio non esiste più, rientro.`); }
+      else if (dist(p, lb.site) <= pkm + CFG.interceptRadiusKm) {
+        p.lat = lb.site.lat; p.lon = lb.site.lon;
+        bombLaunchBase(p, lb);
+        goHome(p);
+        continue;
+      } else { moveTo(p, lb.site, pkm); continue; }
+    }
     const pat = patrolOf(p);
     if (pat && p.state === 'flight' && pat.leader !== p.id) {
       const ld = findPlane(pat.leader);
@@ -356,12 +375,12 @@ function chase(f, th, km, remaining) {
       addLog(`${ms.map(m => m.id).join(', ')} rientrano a velocità ×${CFG.patrolReturnSpeed}, ma non possono intercettare altro fino all'atterraggio.`, 'good');
       return;
     }
-    if (th.training || Math.random() < winCh(f)) {
+    if (th.training || Math.random() < fighterWin(f, th)) {
       killThreat(th, `${f.id} ha abbattuto ${th.id}!`);
       earnWin(f);
       if (f.state === 'escort') { f.engaged = null; f.aim = null; addLog(`${f.id} torna a scortare ${f.escort}.`); }
       else goHome(f);
-    } else shotDown(f, `${f.id} è stato abbattuto da ${th.id}.`);
+    } else if (shotDown(f, `${f.id} è stato abbattuto da ${th.id}.`) && th.apoc) apocKill(th, f);
     return;
   }
   let aim = th;
@@ -388,8 +407,8 @@ function ambush(th, prey) {
 }
 // primo punto lungo la rotta attuale della minaccia che il caccia può raggiungere prima di lei
 function solveIntercept(f, th, maxMin) {
-  const v = th.training ? 0 : thSpeed() * (th.rush ? CFG.ops.tactical.speedMult : 1) / 60, u = spd(f) / 60;
-  const stop = th.state === 'inbound' ? dist(th, th.attack) : Infinity;
+  const v = th.training ? 0 : threatSpeed(th) / 60, u = spd(f) / 60;
+  const stop = th.state === 'inbound' ? dist(th, th.attack) : th.goal ? dist(th, th.goal) : Infinity;
   const at = t => travel(th, th.bearing, Math.min(v * t, stop)).pos;
   const g = t => dist(f, at(t)) - u * t;
   if (g(0) <= 0) return { pos: { lat: th.lat, lon: th.lon }, t: 0 };
@@ -404,13 +423,21 @@ function solveIntercept(f, th, maxMin) {
   }
   return null;
 }
-function spawnThreat(by) {
-  const p = randomPoint();
-  const th = { trail: [], id: 'M' + (++S.ids.M), lat: p.lat, lon: p.lon, bearing: Math.random() * 360, born: S.t, flightStart: S.t, state: 'flight', attack: null, prey: null };
+const threatSpeed = th => th.apoc ? th.speed : thSpeed() * (th.rush ? CFG.ops.tactical.speedMult : 1);
+function newThreat(pos, extra) {
+  const th = Object.assign({ trail: [], id: 'M' + (++S.ids.M), lat: pos.lat, lon: pos.lon, bearing: Math.random() * 360, born: S.t, flightStart: S.t, state: 'flight', attack: null, prey: null }, extra);
   S.threats.push(th);
-  addLog(`${by} segnala la minaccia ${th.id} a ${fmtCoord(th)}, ${Math.round(dist(th, S.base))} km dalla base.`, 'bad');
+  return th;
+}
+// una nuova minaccia porta il gioco a tempo reale e la seleziona
+function alertThreat(th, select = true) {
   if (S.speed !== 1) { S.speed = 1; S.turboLeft = 0; addLog('Nuova minaccia: velocità portata a tempo reale.'); }
-  S.selectedThreat = th.id;
+  if (select) S.selectedThreat = th.id;
+}
+function spawnThreat(by) {
+  const th = newThreat(randomPoint());
+  addLog(`${by} segnala la minaccia ${th.id} a ${fmtCoord(th)}, ${Math.round(dist(th, S.base))} km dalla base.`, 'bad');
+  alertThreat(th);
 }
 function removeThreat(id) {
   S.threats = S.threats.filter(x => x.id !== id);

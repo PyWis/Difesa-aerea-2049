@@ -4,17 +4,20 @@
 let S, worldRows = [], BASES = [];
 const thSpeed = () => CFG.threatSpeed * (1 + CFG.diffSpeed * rankIdx(S.medals));
 // probabilità di vincere uno scontro; con un aereo p si sommano i bonus dei suoi piloti
-const winCh = p => Math.min(CFG.pilots.maxWin, Math.max(0.5, CFG.winChance - CFG.diffWin * rankIdx(S.medals)) + (p ? crewWin(p) : 0));
+const winCh = p => Math.min(CFG.pilots.maxWin, Math.max(CFG.winMin, CFG.winChance - CFG.diffWin * rankIdx(S.medals)) + (p ? crewWin(p) : 0));
 const atkCh = () => CFG.attackChance + CFG.diffAttack * rankIdx(S.medals);
+// effetti temporanei (anche per i salvataggi precedenti, a cui mancano i campi nuovi)
+const newFx = () => ({ recallUntil: 0, recallBase: null, pilotUntil: 0, pilotLeft: 0, techUntil: 0, flight: null, monumentUntil: 0, repLater: [],
+  calmUntil: 0, cadetsUntil: 0, cadetMissionsUntil: 0, space: [] });
 function newGame() {
   S = {
     credits: CFG.startCredits, rep: CFG.startRep, t: 0, speed: 0, base: null,
     sites: pickSites(worldRows),
     support: { recon: 0, tanker: 0, signals: 0, lock: { recon: 0, tanker: 0 } }, planes: [], threats: [], log: [], loans: [], emergency: [],
-    ids: { P: 0, R: 0, C: 0, B: 0, A: 0, T: 0, M: 0, L: 0, E: 0, K: 0, D: 0, PL: 0 }, pilots: [], pilotsLost: 0, trainings: [], trainDone: 0,
+    ids: { P: 0, R: 0, C: 0, B: 0, A: 0, T: 0, M: 0, L: 0, E: 0, K: 0, D: 0, PL: 0, X: 0 }, pilots: [], pilotsLost: 0, trainings: [], trainDone: 0,
     decl: null, askBankrupt: false, debtSince: null, debtAlerted: false, autosave: false, profile: null,
     extra: [], research: 0, artAt: {}, missiles: [], pending: null,
-    fx: { recallUntil: 0, recallBase: null, pilotUntil: 0, pilotLeft: 0, techUntil: 0, flight: null, monumentUntil: 0, repLater: [] },
+    fx: newFx(), launch: [], pilotsSpace: 0, apocDone: 0,
     ops: { at: {}, boosts: [] },
     selectedThreat: null, hoverSite: null, over: false, prevSpeed: 900, turboLeft: 0,
     patrols: [], kills: 0, medals: 0, slots: { fighter: TYPES.fighter.max, bomber: TYPES.bomber.max },
@@ -102,8 +105,15 @@ function declPay() {
   if (!S.decl.left) S.decl = null;
   changeRep(-declStep());
 }
+// basi attive: operativa e secondarie (bersagli della minaccia dell'apocalisse e dei bombardieri)
+const activeBases = () => [{ kind: 'main', name: S.base.name, lat: S.base.lat, lon: S.base.lon },
+  ...S.extra.map(b => ({ kind: b.kind, name: b.site.name, lat: b.site.lat, lon: b.site.lon }))];
+// periodo senza nuove minacce dopo aver sconfitto la minaccia dell'apocalisse
+const calm = () => S.t < S.fx.calmUntil;
 const planesOf = type => S.planes.filter(p => p.type === type);
 // ---------- Basi secondarie e ricerca ----------
+// prossima base secondaria acquistabile: la prima non posseduta, in ordine (anche se una è stata distrutta)
+const nextBaseDef = () => CFG.bases.find(d => !extraOf(d.kind));
 const extraOf = kind => S.extra.find(b => b.kind === kind);
 const isOwnBase = b => dist(b, S.base) < 1 || S.extra.some(x => dist(b, x.site) < 1);
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));

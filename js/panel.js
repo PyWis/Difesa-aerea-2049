@@ -71,7 +71,7 @@ function gearRow(p) {
 }
 function crewLine(p) {
   const pl = crewPilots(p), c = crewOf(p);
-  if (!pl.length) return '<span class="note">Nessun pilota assegnato (pilota di base): vedi Caserma.</span>';
+  if (!pl.length) return '<span class="note">Nessun pilota assegnato: vedi Caserma.</span>';
   const who = slot => { const x = pilotById(c[slot]); return x ? `${SLOT_NAME[slot]} ${esc(pilotTitle(x))}` : ''; };
   const bonus = [crewWin(p) && `+${Math.round(crewWin(p) * 100)}% scontri`, crewStrikeSpeed(p) && `+${crewStrikeSpeed(p)} km/h`, patrolSpeedMult(p) > 1 && `pattuglia +${Math.round(CFG.pilots.patrolCaptainSpeed * 100)}% velocità`].filter(Boolean).join(', ');
   return `<span class="note">Equipaggio: ${[who('first'), who('second')].filter(Boolean).join(' · ')}${bonus ? ` (${bonus})` : ''}</span>`;
@@ -88,6 +88,8 @@ function planeCard(p, aut) {
     if (p.state === 'base' && p.speed < T.top) actions += `<button class="btn ghost" data-action="upgrade" data-a="${p.id}">Potenzia</button>`;
     if (p.state === 'upgrading') {
       extra = `<div class="bar"><i style="width:${p.upgradeMin / DAY * 100}%"></i></div><span class="note">Non impiegabile fino alla fine del potenziamento (${fmtDur(DAY - p.upgradeMin)}).</span>`;
+    } else if (!crewReady(p)) {
+      extra = '<span class="note warn-text">Non può decollare: servono 1° e 2° pilota (Caserma).</span>';
     } else if (p.type === 'fighter') {
       if (sel && sel.state !== 'cooldown') actions += `<button class="btn danger" data-action="intercept" data-a="${sel.id}" data-b="${p.id}">Decolla verso ${sel.id}</button>`;
       for (const l of S.planes.filter(l => isStrike(l) && isAir(l)))

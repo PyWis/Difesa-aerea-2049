@@ -1,6 +1,6 @@
 'use strict';
 /* Flotta: decollo, pattuglie, abbattimenti */
-const readyOf = type => planesOf(type).filter(p => p.state === 'base').sort((a, b) => b.speed - a.speed);
+const readyOf = type => planesOf(type).filter(p => p.state === 'base' && crewReady(p)).sort((a, b) => b.speed - a.speed);
 function launch(p) {
   p.trail = []; p.mission = null;
   p.fast = false; p.joining = false; p.joined = false; p.patrolId = null;

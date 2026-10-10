@@ -95,7 +95,8 @@ const CFG = {
   declaration: { days: 5, perDay: 2000, repPerDay: 10, maxCredits: 1000 },
   // caserma: piloti, accademia, gradi ed equipaggi
   pilots: {
-    startSergeants: 10, startMarshals: 10,   // piloti disponibili a inizio partita
+    startSergeants: 10, startMarshals: 10, startLieutenants: 2,   // piloti disponibili a inizio partita
+    crewRequired: true,                       // un aereo decolla solo con 1° e 2° pilota assegnati
     cadetsPerDay: 1,                          // nuovi cadetti a ogni mezzanotte
     deathOnLoss: true,                        // un aereo perso (abbattuto o senza carburante) porta con sé l'equipaggio
     maxWin: 0.95,                             // tetto della probabilità di vittoria con i bonus dei piloti

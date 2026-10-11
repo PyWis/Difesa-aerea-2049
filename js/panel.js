@@ -262,7 +262,7 @@ function renderPanelBody() {
   </section>`;
   const readyBomb = readyOf('bomber').length;
   const launchRows = S.launch.map(lb => `<div class="row attacking"><span class="tag" style="--tag:var(--threat)">${lb.id}</span>
-      <div class="info"><span class="state">Base di lancio${lb.kind === 'extra' ? ' extra' : ''}: ${lb.site.name}</span><br>${lb.site.state} · ${Math.round(dist(S.base, lb.site))} km dalla base<br>${calm() ? 'Lanci sospesi' : `Prossimo lancio tra ${fmtDur(lb.next - S.t)}`} (${lb.kind === 'extra' ? 'minaccia' : 'minaccia bombardiera'} ogni ${CFG.launch.everyH} ore). ${lb.kind === 'extra' ? 'Distrutta con un bombardiere: una minaccia eliminata.' : `Distrutta con un bombardiere: reputazione +${CFG.launch.rep}%.`}</div>
+      <div class="info"><span class="state">Base di lancio${lb.kind === 'extra' ? ' extra' : lb.kind === 'remote' ? ' REMOTA' : ''}: ${lb.site.name}</span><br>${lb.site.state} · ${Math.round(dist(S.base, lb.site))} km dalla base<br>${calm() ? 'Lanci sospesi' : `Prossimo lancio tra ${fmtDur(lb.next - S.t)}`} (${lb.kind === 'remote' ? `${CFG.launch.remoteThreats} minacce e una base extra` : lb.kind === 'extra' ? 'minaccia' : 'minaccia bombardiera'} ogni ${lb.kind === 'remote' ? CFG.launch.remoteEveryH : CFG.launch.everyH} ore). ${lb.kind === 'remote' && lb.apocAt ? `Se non è distrutta entro ${fmtDur(lb.apocAt - S.t)} crea una minaccia dell'apocalisse. ` : ''}${lb.kind === 'extra' ? 'Distrutta con un bombardiere: una minaccia eliminata.' : `Distrutta con un bombardiere: reputazione +${CFG.launch.rep}%.`}</div>
       <div class="actions"><button class="btn danger" data-action="raid" data-a="${lb.id}" ${readyBomb ? '' : 'disabled'}>Bombarda (${readyBomb ? fmtDur(dist(S.base, lb.site) / spd(readyOf('bomber')[0]) * 60) : 'nessun bombardiere'})</button></div></div>`).join('');
   const nextApoc = nextDayOfMonth(S.t, CFG.apoc.day);
   const secThreats = `
@@ -303,8 +303,8 @@ function renderPanelBody() {
   const secSupport = `
   <section class="block">
     <h2>Supporto</h2>
-    ${supportBlock('recon', 'Ricognitori', CFG.reconLevels, CFG.reconPerDay,
-      `${CFG.reconPerDay} crediti al giorno ciascuno. Reputazione recuperata ogni giorno: ${CFG.reconLevels.filter(l => l).map(l => `${l} → +${CFG.reconRep[l]}`).join(', ')}, triplicata sotto il 50% di reputazione e raddoppiata tra 50% e 90%${repMult(S.rep) > 1 ? ` (ora ×${repMult(S.rep)})` : ''}. Ognuno segnala minacce a caso, in media una ogni ${CFG.reconSignalDays} giorni.${S.support.signals ? ` Segnalazioni finora: ${S.support.signals}.` : ''}`)}
+    ${supportBlock('recon', 'Ricognitori', reconLevels(S.medals), CFG.reconPerDay,
+      `${CFG.reconPerDay} crediti al giorno ciascuno. Disponibili ora: ${reconAvail(S.medals)} (+${CFG.reconPerMedal} per ogni medaglia, massimo ${reconCap(S.medals)} al grado di ${RANKS[rankIdx(S.medals)].name}; massimi per grado: ${CFG.reconCaps.join(' | ')}). Reputazione recuperata ogni giorno: ${Object.keys(CFG.reconRep).filter(l => +l).map(l => `${l} → +${CFG.reconRep[l]}`).join(', ')} (oltre 20: +${CFG.reconRep[20]}), triplicata sotto il 50% di reputazione e raddoppiata tra 50% e 90%${repMult(S.rep) > 1 ? ` (ora ×${repMult(S.rep)})` : ''}. Ognuno segnala minacce a caso, in media una ogni ${CFG.reconSignalDays} giorni.${S.support.signals ? ` Segnalazioni finora: ${S.support.signals}.` : ''}`)}
     ${supportBlock('tanker', 'Rifornitori', CFG.tankerLevels, CFG.tankerPerDay,
       `${CFG.tankerPerDay} crediti al giorno ciascuno, +${CFG.tankerBonusH} h di autonomia ai caccia per ognuno. Autonomia per i prossimi decolli: ${aut.toFixed(0)} h; ridurli non toglie autonomia ai caccia già in volo. Ogni modifica blocca i livelli per 24 ore.${Object.keys(CFG.tankerRepLoss).map(k => ` Con ${k} attivi la reputazione cala di ${CFG.tankerRepLoss[k]} al giorno.`).join('')}`)}
   </section>`;

@@ -14,7 +14,8 @@ const goalAlive = g => g.kind === 'main' || S.extra.some(b => b.kind === g.kind 
 
 // eventi del calendario, a mezzanotte
 function monthlyEvents(d) {
-  if (d.getUTCDate() === CFG.launch.day) newLaunchBase('monthly');
+  if (d.getUTCDate() === CFG.launch.day) spawnLaunchBases('monthly');
+  if (d.getUTCDay() === 1 && rankIdx(S.medals) >= CFG.launch.mondayMinRank) { addLog('Lunedì: nasce una nuova base di lancio.', 'bad'); newLaunchBase('extra'); }
   if (d.getUTCDate() === CFG.apoc.day) spawnApocalypse(d);
 }
 
@@ -76,18 +77,33 @@ function apocArrive(th) {
 }
 
 // ---------- Basi di lancio e minacce bombardiere ----------
-function pickLaunchSite() {
+function pickLaunchSite(remote) {
   const free = BASES.filter(b => !isOwnBase(b) && !S.launch.some(l => dist(l.site, b) < 1));
+  if (remote) {
+    const far = free.filter(b => dist(b, S.base) >= CFG.launch.remoteMinKm);
+    const b = far.length ? choice(far) : free.reduce((a, c) => dist(c, S.base) > dist(a, S.base) ? c : a);
+    return { name: b.name, state: b.state, lat: b.lat, lon: b.lon };
+  }
   const ok = free.filter(b => { const d = dist(b, S.base); return d >= CFG.launch.minKm && d <= CFG.launch.maxKm; });
   const b = choice(ok.length ? ok : free);
   return { name: b.name, state: b.state, lat: b.lat, lon: b.lon };
 }
-function newLaunchBase(kind) {
-  const old = S.launch.find(l => l.kind === kind && kind === 'monthly');
-  if (old) { S.launch = S.launch.filter(l => l !== old); addLog(`${old.site.name} non è più una base di lancio.`); }
-  const lb = { id: 'X' + (++S.ids.X), kind, site: pickLaunchSite(), next: S.t + CFG.launch.everyH * 60 };
+// punto di nascita delle basi (1° del mese o cielo vuoto): dal grado di Maggiore una base remota + 2 basi normali invece di una
+function spawnLaunchBases(kind) {
+  if (rankIdx(S.medals) < CFG.launch.remoteMinRank) { newLaunchBase(kind); return; }
+  if (!S.launch.some(l => l.kind === 'remote')) newLaunchBase('remote');
+  for (let i = 0; i < CFG.launch.triggerBases; i++) newLaunchBase(kind, i > 0);
+}
+function newLaunchBase(kind, keepOld) {
+  const old = S.launch.filter(l => l.kind === kind && kind === 'monthly');
+  if (old.length && !keepOld) { S.launch = S.launch.filter(l => !old.includes(l)); addLog(`${old.map(o => o.site.name).join(', ')} non ${old.length > 1 ? 'sono più basi' : 'è più una base'} di lancio.`); }
+  const remote = kind === 'remote';
+  const lb = { id: 'X' + (++S.ids.X), kind, site: pickLaunchSite(remote), next: S.t + (remote ? CFG.launch.remoteEveryH : CFG.launch.everyH) * 60 };
+  if (remote) lb.apocAt = S.t + CFG.launch.remoteApocH * 60;
   S.launch.push(lb);
-  addLog(kind === 'monthly'
+  addLog(remote
+    ? `BASE DI LANCIO REMOTA ${lb.id}: ${lb.site.name} (${lb.site.state}), ${Math.round(dist(S.base, lb.site))} km dalla base. Ogni ${CFG.launch.remoteEveryH} ore lancia ${CFG.launch.remoteThreats} minacce e crea una base di lancio extra.${rankIdx(S.medals) >= CFG.launch.remoteApocMinRank ? ` Se non viene distrutta entro ${CFG.launch.remoteApocH} ore crea una minaccia dell'apocalisse extra.` : ''}`
+    : kind === 'monthly'
     ? `${lb.site.name} (${lb.site.state}) diventa Base di lancio delle minacce ${lb.id}: ogni ${CFG.launch.everyH} ore lancia una minaccia bombardiera contro una delle tue basi. Serve un bombardiere per distruggerla (${Math.round(dist(S.base, lb.site))} km dalla base).`
     : `Cielo libero: ${lb.site.name} (${lb.site.state}) diventa Base di lancio delle minacce extra ${lb.id} e lancia una minaccia ogni ${CFG.launch.everyH} ore. Distruggerla con un bombardiere vale una minaccia eliminata (${Math.round(dist(S.base, lb.site))} km dalla base).`, 'bad');
   panelDirty = true;
@@ -95,16 +111,32 @@ function newLaunchBase(kind) {
 // se non ci sono minacce in cielo, dal grado Tenente in su nasce una base di lancio extra (una alla volta)
 function checkExtraLaunch() {
   if (calm() || rankIdx(S.medals) < CFG.launch.extraMinRank || skyThreats().length || S.launch.some(l => l.kind === 'extra')) return;
-  newLaunchBase('extra');
+  spawnLaunchBases('extra');
 }
 function launchTick() {
   for (const lb of S.launch) {
     while (S.t >= lb.next) {
-      lb.next += CFG.launch.everyH * 60;
+      lb.next += (lb.kind === 'remote' ? CFG.launch.remoteEveryH : CFG.launch.everyH) * 60;
       if (calm()) continue;
-      if (lb.kind === 'monthly') launchRaider(lb); else launchExtra(lb);
+      if (lb.kind === 'monthly') launchRaider(lb);
+      else if (lb.kind === 'remote') launchRemote(lb);
+      else launchExtra(lb);
+    }
+    // base remota ancora in piedi dopo 24 ore: minaccia dell'apocalisse extra (una sola volta)
+    if (lb.kind === 'remote' && lb.apocAt && S.t >= lb.apocAt) {
+      lb.apocAt = null;
+      if (rankIdx(S.medals) >= CFG.launch.remoteApocMinRank && !calm()) {
+        addLog(`La base remota ${lb.site.name} non è stata distrutta entro ${CFG.launch.remoteApocH} ore: nasce una minaccia dell'apocalisse extra!`, 'bad');
+        spawnApocalypse(gameDate(S.t));
+      }
     }
   }
+}
+function launchRemote(lb) {
+  const ths = Array.from({ length: CFG.launch.remoteThreats }, () => newThreat(lb.site));
+  addLog(`La base remota ${lb.site.name} lancia ${ths.map(t => t.id).join(' e ')} e crea una nuova base di lancio extra.`, 'bad');
+  alertThreat(ths[0]);
+  newLaunchBase('extra');
 }
 function launchRaider(lb) {
   const goal = choice(activeBases());
@@ -134,7 +166,7 @@ function raidHit(th) {
 function bombLaunchBase(p, lb) {
   S.launch = S.launch.filter(x => x !== lb);
   const rg = addResearch(CFG.researchBomb);
-  if (lb.kind === 'monthly') {
+  if (lb.kind === 'monthly' || lb.kind === 'remote') {
     changeRep(CFG.launch.rep);
     addLog(`${p.id} ha bombardiato e distrutto la base di lancio ${lb.site.name}: reputazione +${CFG.launch.rep}%.${rg ? ` Ricerca +${rg}%.` : ''}`, 'good');
   } else {

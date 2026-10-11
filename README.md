@@ -89,7 +89,7 @@ I ricognitori aggiuntivi segnalano minacce come quelli normali (in media una ogn
 ## Come si gioca
 
 1. Scegli la base operativa tra le 10 località proposte.
-2. Parti con **5 caccia** (fino a 12 con i posti aggiuntivi); compra altri caccia, bombardieri e aerei tattici. Attiva i **ricognitori**, che segnalano le minacce a caso (e recuperano reputazione ogni giorno).
+2. Parti con **5 caccia** (fino a 12 con i posti aggiuntivi); compra altri caccia, bombardieri e aerei tattici. Attiva i **ricognitori** (disponibili: 1 + 1 per ogni medaglia, con massimo per grado 5 | 10 | 15 | 20 | 30 | 40; i premi di reputazione restano gli stessi), che segnalano le minacce a caso (e recuperano reputazione ogni giorno).
 3. **Pattuglia:** quando una minaccia è inseguita da almeno 3 caccia, dalla sua scheda puoi premere *Forma pattuglia*: i due caccia più lontani raggiungono il più vicino a velocità ×3. Se la pattuglia unita arriva al contatto, l'abbattimento è certo (100%); i tre caccia rientrano a velocità ×2 e non possono intercettare altro fino all'atterraggio. Se un membro viene richiamato o perso, la pattuglia si scioglie.
 4. **Caccia:** intercettano le minacce in volo (autonomia limitata; i **rifornitori** la aumentano). Due modalità di rotta: *inseguimento diretto* oppure *punto d'incontro* (calcolato per anticipare la minaccia).
 5. **Minacce a terra:** quando una minaccia attacca una base resta lì 3-7 giorni. Solo **bombardiere** (+1000, −500 di ricostruzione) e **aereo tattico** (+2000) possono eliminarla. Se riparte, perdi 50% di reputazione.
@@ -142,6 +142,9 @@ I piloti partono **senza assegnazione**, sono tolti dal gioco; dopo 3 giorni ne 
 - Il **1° di ogni mese** una base del mondo (tra 2000 e 6000 km dalla tua base operativa) diventa **Base di lancio**: ogni **5 ore** lancia una **minaccia bombardiera** contro una delle tue basi attive. Se la colpisce, **la distrugge** (la base principale: game over; una secondaria: va riacquistata) e poi viaggia come una minaccia normale. Si ferma con i caccia come qualsiasi minaccia. La nuova base di lancio sostituisce quella del mese precedente.
 - Per distruggere la base di lancio serve un **bombardiere** (scheda *Minacce* o scheda del bombardiere): **reputazione +5%**.
 - **Base di lancio extra:** dal grado **Tenente** in su, se non ci sono minacce in cielo, ne compare una (una alla volta) che lancia una minaccia normale ogni 5 ore. Distrutta con un bombardiere vale **una minaccia eliminata**.
+- **Dal grado Maggiore**, quando nasce una base di lancio (il 1° del mese o a cielo vuoto) compaiono una **base di lancio remota** (almeno **6000 km** dalla base operativa) e **due basi normali** invece di una. Ogni **12 ore** la base remota lancia **2 minacce** e crea una **base di lancio extra**. Distrutta con un bombardiere: reputazione +5%.
+- **Ogni lunedì** (dal grado Maggiore) nasce una base di lancio normale.
+- **Dal grado Colonnello**, se la base remota non viene distrutta entro **24 ore** crea una **minaccia dell'apocalisse extra**.
 - Valori in `CFG.launch`.
 
 ## Interfaccia (desktop)

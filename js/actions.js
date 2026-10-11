@@ -36,7 +36,7 @@ const A = {
   setLevel(kind, n) {
     n = +n;
     const perDay = kind === 'recon' ? CFG.reconPerDay : CFG.tankerPerDay;
-    const levels = kind === 'recon' ? CFG.reconLevels : CFG.tankerLevels;
+    const levels = kind === 'recon' ? reconLevels(S.medals) : CFG.tankerLevels;
     const cur = S.support[kind];
     if (!levels.includes(n) || n === cur) return;
     if (S.t < S.support.lock[kind]) { addLog(`${kind === 'recon' ? 'Ricognitori' : 'Rifornitori'} bloccati: potrai modificarli tra ${fmtDur(S.support.lock[kind] - S.t)}.`, 'bad'); return; }

@@ -14,7 +14,8 @@ function step(dt) {
   // mezzanotte: pagamenti anticipati e reputazione
   if (dayIndex(t1) > dayIndex(t0)) {
     const billed = S.support.recon + S.support.tanker > 0;
-    for (const [kind, perDay, levels, label] of [['recon', CFG.reconPerDay, CFG.reconLevels, 'Ricognitori'], ['tanker', CFG.tankerPerDay, CFG.tankerLevels, 'Rifornitori']]) {
+    for (const [kind, perDay, levels, label] of [['recon', CFG.reconPerDay, reconLevels(S.medals), 'Ricognitori'], ['tanker', CFG.tankerPerDay, CFG.tankerLevels, 'Rifornitori']]) {
+      if (kind === 'recon' && S.support.recon > reconAvail(S.medals)) S.support.recon = reconAvail(S.medals);
       const n = S.support[kind];
       if (!n) continue;
       let pay = n;
@@ -39,7 +40,7 @@ function step(dt) {
     }
     if (S.decl) { declPay(); if (S.over) return; }
     const before = S.rep;
-    const baseGain = CFG.reconRep[S.support.recon] || 0, loss = CFG.tankerRepLoss[S.support.tanker] || 0;
+    const baseGain = reconRepFor(S.support.recon), loss = CFG.tankerRepLoss[S.support.tanker] || 0;
     const mult = repMult(before), gain = baseGain * mult;
     const extra = Math.max(0, before + gain - loss - 100); // punti che andrebbero oltre il 100%
     changeRep(gain - loss);

@@ -89,7 +89,7 @@ I ricognitori aggiuntivi segnalano minacce come quelli normali (in media una ogn
 ## Come si gioca
 
 1. Scegli la base operativa tra le 10 località proposte.
-2. Parti con **5 caccia** (fino a 12 con i posti aggiuntivi); compra altri caccia, bombardieri e aerei tattici. Attiva i **ricognitori** (disponibili: 1 + 1 per ogni medaglia, con massimo per grado 5 | 10 | 15 | 20 | 30 | 40; i premi di reputazione restano gli stessi), che segnalano le minacce a caso (e recuperano reputazione ogni giorno).
+2. Parti con **5 caccia** (fino a 12 con i posti aggiuntivi); compra altri caccia, bombardieri e aerei tattici. Attiva i **ricognitori** (sempre 6 scatti con gli stessi premi; il numero di ricognitori di ogni scatto cresce di 1 per medaglia fino a 10 | 15 | 20 | 30 | 40), che segnalano le minacce a caso (e recuperano reputazione ogni giorno).
 3. **Pattuglia:** quando una minaccia è inseguita da almeno 3 caccia, dalla sua scheda puoi premere *Forma pattuglia*: i due caccia più lontani raggiungono il più vicino a velocità ×3. Se la pattuglia unita arriva al contatto, l'abbattimento è certo (100%); i tre caccia rientrano a velocità ×2 e non possono intercettare altro fino all'atterraggio. Se un membro viene richiamato o perso, la pattuglia si scioglie.
 4. **Caccia:** intercettano le minacce in volo (autonomia limitata; i **rifornitori** la aumentano). Due modalità di rotta: *inseguimento diretto* oppure *punto d'incontro* (calcolato per anticipare la minaccia).
 5. **Minacce a terra:** quando una minaccia attacca una base resta lì 3-7 giorni. Solo **bombardiere** (+1000, −500 di ricostruzione) e **aereo tattico** (+2000) possono eliminarla. Se riparte, perdi 50% di reputazione.

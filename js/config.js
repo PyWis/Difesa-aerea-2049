@@ -5,11 +5,10 @@ const CFG = {
   startCredits: 2500,
   startRep: 90,             // reputazione iniziale (%)
   // livelli selezionabili per gli aerei di supporto (aerei attivi)
-  // ricognitori disponibili: reconStart + 1 per ogni medaglia, fino al massimo del grado (Maresciallo … Colonnello e oltre)
-  reconStart: 1, reconPerMedal: 1,
-  reconCaps: [5, 10, 15, 20, 30, 40],
-  reconSteps: [0, 1, 2, 5, 10, 15, 20, 25, 30, 35, 40], // scatti selezionabili (più il massimo disponibile)
-  reconRep: { 0: 0, 1: 1, 2: 2, 5: 3, 10: 4, 20: 5 }, // reputazione recuperata ogni giorno (dallo scatto più alto raggiunto: premi invariati)
+  // ricognitori: sempre 6 scatti, con premi di reputazione fissi; il numero di ricognitori di ogni scatto cresce di 1 per ogni medaglia fino al suo massimo
+  reconStart: [0, 1, 2, 5, 10, 20],   // ricognitori di ogni scatto senza medaglie (lo scatto 0 resta sempre spento)
+  reconMax:   [0, 10, 15, 20, 30, 40], // massimo di ogni scatto
+  reconRep:   [0, 1, 2, 3, 4, 5],      // reputazione recuperata ogni giorno da ogni scatto
   tankerLevels: [0, 1, 2, 5, 10, 20],
   tankerRepLoss: { 5: 2, 10: 3, 20: 4 },  // reputazione persa ogni giorno con questi rifornitori attivi
   // moltiplicatore del recupero di reputazione in base al livello attuale: sotto 50 triplo, da 50 a 90 doppio
@@ -189,11 +188,8 @@ const RANKS = [
   { at: 20, name: 'Capitano' }, { at: 40, name: 'Maggiore' }, { at: 65, name: 'Colonnello' },
   { at: 95, name: 'Generale' }, { at: MEDALS_GOAL, name: 'Generale Planetario' },
 ];
-const reconCap = m => CFG.reconCaps[Math.min(rankIdx(m), CFG.reconCaps.length - 1)];
-const reconAvail = m => Math.min(reconCap(m), CFG.reconStart + CFG.reconPerMedal * m);
-// scatti selezionabili: quelli fino al massimo disponibile, più il massimo stesso
-const reconLevels = m => { const a = reconAvail(m); return [...new Set([...CFG.reconSteps.filter(l => l <= a), a])].sort((x, y) => x - y); };
-const reconRepFor = n => CFG.reconRep[Math.max(...Object.keys(CFG.reconRep).map(Number).filter(k => k <= n))] || 0;
+const reconLevels = m => CFG.reconStart.map((v, i) => i ? Math.min(CFG.reconMax[i], v + m) : 0);
+const reconRepFor = (n, m = S.medals) => { const lv = reconLevels(m); let r = 0; lv.forEach((v, i) => { if (n >= v && v > 0) r = CFG.reconRep[i]; }); return r; };
 const rankIdx = m => RANKS.reduce((i, r, k) => m >= r.at ? k : i, 0);
 // Ora 0 di gioco = 21 marzo 2049, 12:00
 const START_MS = Date.UTC(2049, 2, 21, 12, 0, 0);

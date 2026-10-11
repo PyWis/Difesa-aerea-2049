@@ -15,7 +15,7 @@ function step(dt) {
   if (dayIndex(t1) > dayIndex(t0)) {
     const billed = S.support.recon + S.support.tanker > 0;
     for (const [kind, perDay, levels, label] of [['recon', CFG.reconPerDay, reconLevels(S.medals), 'Ricognitori'], ['tanker', CFG.tankerPerDay, CFG.tankerLevels, 'Rifornitori']]) {
-      if (kind === 'recon' && S.support.recon > reconAvail(S.medals)) S.support.recon = reconAvail(S.medals);
+      if (kind === 'recon') S.support.recon = Math.min(S.support.recon, Math.max(...reconLevels(S.medals)));
       const n = S.support[kind];
       if (!n) continue;
       let pay = n;

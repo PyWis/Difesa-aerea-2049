@@ -140,7 +140,7 @@ function draw(now) {
     ctx.save(); ctx.translate(x, y); ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(7, 6); ctx.lineTo(-7, 6); ctx.closePath();
     ctx.fillStyle = colors.threat; ctx.globalAlpha = 0.85; ctx.fill(); ctx.restore(); ctx.globalAlpha = 1;
     ctx.fillStyle = colors.threat; ctx.font = '600 11px "Chakra Petch", system-ui, sans-serif';
-    txt(`Base di lancio${lb.kind === 'extra' ? ' extra' : ''} ${lb.site.name}`, x + 11, y - 4);
+    txt(`Base di lancio${lb.kind === 'extra' ? ' extra' : lb.kind === 'remote' ? ' REMOTA' : ''} ${lb.site.name}`, x + 11, y - 4);
     ctx.fillStyle = colors['ink-soft']; txt(`lancio tra ${fmtDur(lb.next - S.t)}`, x + 11, y + 9);
   }
 
@@ -294,7 +294,7 @@ canvas.addEventListener('mousemove', e => {
     if (th) html = `<b>${th.id}</b> ${THREAT_STATE(th)}<br>${fmtCoord(th)}, ${Math.round(dist(th, S.base))} km dalla base<br>Clic per selezionare`;
     else if (p) html = `<b>${p.id}</b> ${TYPES[p.type].label}, ${p.speed} km/h<br>${planeStateText(p)}`;
     else if (S.trainings.find(tr => near(tr.base))) { const tr = S.trainings.find(x => near(x.base)); html = `<b>Addestramento: ${tr.base.name}</b><br>Invia un aereo tattico, premio ${CFG.trainingMedals} medaglia<br>Scade tra ${fmtDur(tr.until - S.t)}`; }
-    else if (S.launch.find(lb => near(lb.site))) { const lb = S.launch.find(x => near(x.site)); html = `<b>Base di lancio delle minacce${lb.kind === 'extra' ? ' extra' : ''}: ${lb.site.name}</b><br>${lb.site.state}<br>Prossimo lancio tra ${fmtDur(lb.next - S.t)}<br>Va distrutta con un bombardiere`; }
+    else if (S.launch.find(lb => near(lb.site))) { const lb = S.launch.find(x => near(x.site)); html = `<b>Base di lancio delle minacce${lb.kind === 'extra' ? ' extra' : lb.kind === 'remote' ? ' REMOTA' : ''}: ${lb.site.name}</b><br>${lb.site.state}<br>Prossimo lancio tra ${fmtDur(lb.next - S.t)}<br>Va distrutta con un bombardiere`; }
     else if (near(S.base)) html = `<b>Base: ${S.base.name}</b><br>${S.base.state}, ${S.base.cont}`;
     else if (S.extra.find(b => near(b.site))) { const b = S.extra.find(x => near(x.site)); html = `<b>${CFG.bases.find(d => d.kind === b.kind).label}: ${b.site.name}</b><br>${b.site.state}, ${b.site.cont}`; }
   }

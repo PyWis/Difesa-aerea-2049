@@ -5,8 +5,10 @@ const CFG = {
   startCredits: 2500,
   startRep: 90,             // reputazione iniziale (%)
   // livelli selezionabili per gli aerei di supporto (aerei attivi)
-  reconLevels: [0, 1, 2, 5, 10, 20],
-  reconRep: { 0: 0, 1: 1, 2: 2, 5: 3, 10: 4, 20: 5 }, // reputazione recuperata ogni giorno
+  // ricognitori: sempre 6 scatti, con premi di reputazione fissi; il numero di ricognitori di ogni scatto cresce di 1 per ogni medaglia fino al suo massimo
+  reconStart: [0, 1, 2, 5, 10, 20],   // ricognitori di ogni scatto senza medaglie (lo scatto 0 resta sempre spento)
+  reconMax:   [0, 10, 15, 20, 30, 40], // massimo di ogni scatto
+  reconRep:   [0, 1, 2, 3, 4, 5],      // reputazione recuperata ogni giorno da ogni scatto
   tankerLevels: [0, 1, 2, 5, 10, 20],
   tankerRepLoss: { 5: 2, 10: 3, 20: 4 },  // reputazione persa ogni giorno con questi rifornitori attivi
   // moltiplicatore del recupero di reputazione in base al livello attuale: sotto 50 triplo, da 50 a 90 doppio
@@ -121,6 +123,15 @@ const CFG = {
     minKm: 2000, maxKm: 6000, // distanza dalla base operativa (raggiungibile da un bombardiere)
     rep: 5,                 // reputazione guadagnata distruggendo la base di lancio mensile
     extraMinRank: 2,        // grado minimo (Tenente) per la base di lancio extra, creata se il cielo è vuoto
+    // dal grado di Maggiore, quando nasce una base di lancio (1° del mese, cielo vuoto): una base remota + 2 basi normali invece di una
+    remoteMinRank: 4,
+    remoteMinKm: 6000,      // distanza minima della base remota dalla base operativa
+    remoteEveryH: 12,       // ogni 12 ore la base remota lancia `remoteThreats` minacce e crea una base extra
+    remoteThreats: 2,
+    triggerBases: 2,        // basi normali create insieme alla base remota
+    mondayMinRank: 4,       // ogni lunedì (a mezzanotte) nasce una base di lancio normale
+    remoteApocMinRank: 5,   // dal grado di Colonnello la base remota non distrutta entro `remoteApocH` ore crea una minaccia dell'apocalisse extra
+    remoteApocH: 24,
   },
   freeMissionGroup: 5,      // ogni 5 piloti liberi dello stesso grado, uno a caso riceve una missione premio al giorno
   // dichiarazione di emergenza: solo su richiesta, mai automatica
@@ -177,6 +188,8 @@ const RANKS = [
   { at: 20, name: 'Capitano' }, { at: 40, name: 'Maggiore' }, { at: 65, name: 'Colonnello' },
   { at: 95, name: 'Generale' }, { at: MEDALS_GOAL, name: 'Generale Planetario' },
 ];
+const reconLevels = m => CFG.reconStart.map((v, i) => i ? Math.min(CFG.reconMax[i], v + m) : 0);
+const reconRepFor = (n, m = S.medals) => { const lv = reconLevels(m); let r = 0; lv.forEach((v, i) => { if (n >= v && v > 0) r = CFG.reconRep[i]; }); return r; };
 const rankIdx = m => RANKS.reduce((i, r, k) => m >= r.at ? k : i, 0);
 // Ora 0 di gioco = 21 marzo 2049, 12:00
 const START_MS = Date.UTC(2049, 2, 21, 12, 0, 0);
